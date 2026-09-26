@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoScan India — National Vehicle Compliance Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: { extend: {
+    fontFamily: { sans: ['"Plus Jakarta Sans"','sans-serif'], mono: ['"Space Grotesk"','monospace'] },
+    colors: { eco: { navy:'#0a192f', card:'#0f2436' } },
+    boxShadow: { glow:'0 0 30px -6px rgba(16,185,129,.45)' }
+  }}
+}
+</script>
+<style>
+  body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8fafc;}
+  .grid-lines{background-image:linear-gradient(rgba(16,185,129,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,.08) 1px,transparent 1px);background-size:38px 38px;}
+  @keyframes scanY{0%{top:0%}100%{top:100%}}
+  .laser{position:absolute;left:6%;right:6%;height:2px;background:linear-gradient(90deg,transparent,#34d399,transparent);box-shadow:0 0 12px #34d399;animation:scanY 3s ease-in-out infinite alternate;}
+  .num{font-family:'Space Grotesk',monospace;}
+  .feature-icon{transition:transform .35s ease, box-shadow .35s ease;}
+  .feature-card:hover .feature-icon{transform:translateY(-4px) scale(1.05);}
+  .modal-overlay{background:rgba(10,25,47,.6);backdrop-filter:blur(6px);}
+  .field-error{display:none;color:#e11d48;font-size:11px;margin-top:4px;}
+  .field-error.show{display:block;}
+  input:invalid{box-shadow:none;}
+</style>
+</head>
+<body class="text-slate-800 antialiased">
+
+<!-- NAV -->
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+  <div class="max-w-6xl mx-auto px-6 h-18 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white"><i data-lucide="leaf" class="w-5 h-5"></i></div>
+      <div>
+        <div class="text-xl font-extrabold text-slate-900">EcoScan <span class="text-emerald-600">India</span></div>
+        <div class="text-[10px] uppercase tracking-wide text-slate-500">National Vehicle Compliance Platform</div>
+      </div>
+    </div>
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+      <a href="#problem" class="hover:text-emerald-600">Why It's Needed</a>
+      <a href="#features" class="hover:text-emerald-600">Features</a>
+      <a href="#impact" class="hover:text-emerald-600">Impact</a>
+    </nav>
+    <div class="flex items-center gap-3">
+      <button onclick="openModal('loginModal')" class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-slate-300 text-slate-700 text-sm font-semibold hover:border-slate-400 hover:bg-slate-50 transition">
+        <i data-lucide="log-in" class="w-4 h-4"></i>Login
+      </button>
+      <button onclick="openModal('signupModal')" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
+        Sign Up<i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative overflow-hidden bg-eco-navy text-white">
+  <div class="absolute inset-0 grid-lines opacity-60"></div>
+  <div class="absolute inset-0 bg-gradient-to-b from-eco-navy via-eco-navy/95 to-eco-navy"></div>
+  <div class="max-w-6xl mx-auto px-6 py-24 relative grid lg:grid-cols-12 gap-12 items-center">
+    <div class="lg:col-span-7 space-y-6">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> National Vehicle Compliance Platform
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+        One scan. Every compliance check. <span class="text-emerald-400">Every vehicle in India.</span>
+      </h1>
+      <p class="text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl">
+        EcoScan India unifies PUC, insurance, fitness and tax verification into a single real-time platform — linked directly to VAHAN and Parivahan — so no vehicle slips through fragmented, paper-based checks again.
+      </p>
+      <div class="flex flex-wrap gap-4 pt-2">
+        <a href="#features" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-eco-navy font-bold text-sm shadow-glow transition">See the Platform</a>
+        <a href="#tech" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-full border border-white/20 hover:border-white/40 text-white font-semibold text-sm transition">View Architecture</a>
+      </div>
+      <div class="pt-8 grid grid-cols-3 gap-6 border-t border-white/10 max-w-lg">
+        <div><div class="num text-2xl font-bold text-emerald-400">4</div><div class="text-xs text-slate-400">Checks, one scan</div></div>
+        <div><div class="num text-2xl font-bold text-emerald-400">&lt;1s</div><div class="text-xs text-slate-400">Database lookup</div></div>
+        <div><div class="num text-2xl font-bold text-emerald-400">100%</div><div class="text-xs text-slate-400">Paperless audit trail</div></div>
+      </div>
+    </div>
+    <div class="lg:col-span-5">
+      <div class="relative rounded-2xl border border-emerald-500/30 bg-eco-card p-6 shadow-2xl">
+        <div class="relative rounded-xl border-2 border-emerald-400/60 bg-black/40 p-5 overflow-hidden">
+          <div class="laser"></div>
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs text-slate-400 num">VEHICLE HEALTH CARD</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-eco-navy font-bold">GREEN</span>
+          </div>
+          <div class="text-2xl num font-bold tracking-widest text-emerald-300 mb-4">DL 8C AX 1234</div>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between text-slate-300"><span>PUC Status</span><span class="text-emerald-400 font-semibold">Valid</span></div>
+            <div class="flex justify-between text-slate-300"><span>Insurance</span><span class="text-emerald-400 font-semibold">Active</span></div>
+            <div class="flex justify-between text-slate-300"><span>Fitness / RC</span><span class="text-emerald-400 font-semibold">Verified</span></div>
+            <div class="flex justify-between text-slate-300"><span>Road Tax / Challans</span><span class="text-emerald-400 font-semibold">Clear</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM / SOLUTION -->
+<section id="problem" class="py-20 bg-white">
+  <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
+    <div>
+      <h2 class="text-sm font-bold text-rose-600 mb-3">The Problem</h2>
+      <p class="text-2xl font-bold text-slate-900 leading-snug mb-4">Compliance data lives in five different places — so it's rarely checked at all.</p>
+      <p class="text-slate-600 leading-relaxed">Fragmented verification, fake or expired documents, manual bottlenecks at checkpoints, and aging vehicles pushing emissions higher all stem from one root issue: no single, trusted source of truth.</p>
+    </div>
+    <div>
+      <h2 class="text-sm font-bold text-emerald-600 mb-3">The Solution</h2>
+      <p class="text-2xl font-bold text-slate-900 leading-snug mb-4">A single digital ecosystem, built on the databases that already exist.</p>
+      <p class="text-slate-600 leading-relaxed">EcoScan combines IoT, OCR, AI-driven number plate recognition and direct links to VAHAN/Parivahan to deliver compliance auditing in real time — for citizens, RTOs and enforcement alike.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="py-20 bg-slate-50 border-y border-slate-200">
+  <div class="max-w-6xl mx-auto px-6">
+    <h2 class="text-3xl font-extrabold text-slate-900 mb-2">What the platform does</h2>
+    <p class="text-slate-500 mb-12 max-w-2xl">Six connected modules cover everything from roadside scanning to state-level enforcement analytics.</p>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20"><i data-lucide="scan-face" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">ANPR & OCR Scanner</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">A phone camera or CCTV feed extracts a plate number and pulls live compliance data in milliseconds.</p>
+      </div>
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-teal-500/20"><i data-lucide="clipboard-check" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">The 4-Check Dashboard</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">PUC, insurance, fitness/RC and road tax or challans — one health card per vehicle, always current.</p>
+      </div>
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-lime-500 to-emerald-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-lime-500/20"><i data-lucide="gauge-circle" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">Dynamic Eco-Score</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">Age, fuel type and maintenance history combine into a score, shown as a green, yellow or red badge.</p>
+      </div>
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-amber-500/20"><i data-lucide="bell-ring" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">Automated Alerts</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">SMS and WhatsApp reminders reach owners weeks before a certificate expires — and fleet operators the moment a vehicle falls out of line.</p>
+      </div>
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-slate-500/20"><i data-lucide="shield-check" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">Enforcement Portal (B2G)</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">Traffic police and RTOs run mass checkpoint checks, issue digital challans, and see pollution heatmaps by district.</p>
+      </div>
+      <div class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+        <div class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-sky-500/20"><i data-lucide="shield-ellipsis" class="w-8 h-8"></i></div>
+        <h3 class="font-bold text-slate-900 mb-1.5">Secure API Gateway</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">Insurers, marketplaces and lenders verify a vehicle's legal standing instantly before underwriting or onboarding.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPACT -->
+<section id="impact" class="py-20 bg-eco-navy text-white">
+  <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+    <div>
+      <i data-lucide="wind" class="w-7 h-7 text-emerald-400 mb-4"></i>
+      <h3 class="font-bold mb-2">Cleaner air</h3>
+      <p class="text-sm text-slate-300 leading-relaxed">Timely maintenance is enforced and high-emission vehicles are identified and taken off the road faster.</p>
+    </div>
+    <div>
+      <i data-lucide="banknote" class="w-7 h-7 text-emerald-400 mb-4"></i>
+      <h3 class="font-bold mb-2">Economic efficiency</h3>
+      <p class="text-sm text-slate-300 leading-relaxed">Paperless verification cuts checkpoint delays and closes gaps that used to enable corruption and revenue loss.</p>
+    </div>
+    <div>
+      <i data-lucide="shield" class="w-7 h-7 text-emerald-400 mb-4"></i>
+      <h3 class="font-bold mb-2">Safer roads</h3>
+      <p class="text-sm text-slate-300 leading-relaxed">Only insured, fit and legally authorized vehicles stay in circulation on Indian highways.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="contact" class="py-20 bg-emerald-600">
+  <div class="max-w-4xl mx-auto px-6 text-center text-white">
+    <h2 class="text-3xl font-extrabold mb-3">Bring EcoScan to your city or fleet</h2>
+    <p class="text-emerald-50 mb-8 max-w-xl mx-auto">Whether you're an RTO, a fleet operator, or a policy stakeholder — get the full technical walkthrough.</p>
+    <a href="mailto:support@ecoscan-india.gov.in" class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-emerald-700 font-bold text-sm shadow-lg hover:bg-emerald-50 transition">Contact the Team <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-[#0f1d2e] text-slate-400 py-8">
+  <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+    <p>© 2026 EcoScan India Platform. A national initiative for cleaner, compliant roads.</p>
+    <div class="flex items-center gap-2 text-slate-500">
+      <i data-lucide="link" class="w-3.5 h-3.5"></i> Integrated with VAHAN · Parivahan · DigiLocker
+    </div>
+  </div>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div id="loginModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-100">
+    <div class="p-6 bg-eco-navy text-white relative">
+      <button onclick="closeModal('loginModal')" class="absolute top-5 right-5 text-white/70 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3"><i data-lucide="log-in" class="w-5 h-5 text-emerald-400"></i></div>
+      <h3 class="text-lg font-bold">Welcome back</h3>
+      <p class="text-xs text-slate-300">Sign in to your EcoScan India account</p>
+    </div>
+    <form id="loginForm" onsubmit="handleLogin(event)" class="p-6 space-y-4" novalidate>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Email or User ID</label>
+        <input id="loginId" type="text" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="field-error" id="err-loginId">Please enter your email or user ID.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+        <div class="relative">
+          <input id="loginPassword" type="password" required class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button type="button" onclick="toggleVisibility('loginPassword','loginPasswordIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <i id="loginPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="field-error" id="err-loginPassword">Please enter your password.</div>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <label class="flex items-center gap-2 text-slate-600"><input type="checkbox" class="rounded border-slate-300"> Remember me</label>
+        <a href="#" onclick="alert('Password reset link sent if the account exists.');return false;" class="text-emerald-600 font-semibold hover:underline">Forgot password?</a>
+      </div>
+      <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition">Login</button>
+      <p class="text-center text-xs text-slate-500">New here? <button type="button" onclick="closeModal('loginModal');openModal('signupModal')" class="text-emerald-600 font-semibold hover:underline">Create an account</button></p>
+    </form>
+  </div>
+</div>
+
+<!-- SIGN UP MODAL -->
+<div id="signupModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4 overflow-y-auto py-8">
+  <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 my-auto">
+    <div class="p-6 bg-eco-navy text-white relative">
+      <button onclick="closeModal('signupModal')" class="absolute top-5 right-5 text-white/70 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3"><i data-lucide="user-plus" class="w-5 h-5 text-emerald-400"></i></div>
+      <h3 class="text-lg font-bold">Create your account</h3>
+      <p class="text-xs text-slate-300">Join the EcoScan India compliance network</p>
+    </div>
+    <form id="signupForm" onsubmit="handleSignup(event)" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto" novalidate>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+        <input id="suName" type="text" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="field-error" id="err-suName">Please enter your full name.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+        <input id="suEmail" type="email" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="field-error" id="err-suEmail">Please enter a valid email address.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Mobile Number</label>
+        <input id="suMobile" type="tel" maxlength="10" placeholder="10-digit mobile number" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="field-error" id="err-suMobile">Mobile number must be exactly 10 digits.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">User ID (Unique Username)</label>
+        <input id="suUserId" type="text" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <div class="field-error" id="err-suUserId">This User ID is already taken. Try another.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">State</label>
+        <select id="suState" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <option value="">Select your state / UT</option>
+        </select>
+        <div class="field-error" id="err-suState">Please select your state.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+        <div class="relative">
+          <input id="suPassword" type="password" required class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button type="button" onclick="toggleVisibility('suPassword','suPasswordIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <i id="suPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="field-error" id="err-suPassword">Min 8 characters, with uppercase, lowercase, number & special character.</div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">Confirm Password</label>
+        <div class="relative">
+          <input id="suConfirmPassword" type="password" required class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <button type="button" onclick="toggleVisibility('suConfirmPassword','suConfirmPasswordIcon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <i id="suConfirmPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="field-error" id="err-suConfirmPassword">Passwords do not match.</div>
+      </div>
+      <label class="flex items-start gap-2 text-xs text-slate-600">
+        <input id="suTerms" type="checkbox" class="mt-0.5 rounded border-slate-300" required>
+        <span>I agree to the Terms & Conditions and Privacy Policy.</span>
+      </label>
+      <div class="field-error" id="err-suTerms">You must accept the Terms & Conditions.</div>
+      <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition">Create Account</button>
+      <p class="text-center text-xs text-slate-500">Already have an account? <button type="button" onclick="closeModal('signupModal');openModal('loginModal')" class="text-emerald-600 font-semibold hover:underline">Login</button></p>
+    </form>
+  </div>
+</div>
+
+<!-- SUCCESS TOAST -->
+<div id="authToast" class="fixed bottom-6 right-6 z-[60] hidden bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-sm font-semibold">
+  <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+  <span id="authToastMsg">Success</span>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+  lucide.createIcons();
+  populateStates();
+});
+
+const INDIAN_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh","Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"];
+
+function populateStates(){
+  const sel = document.getElementById('suState');
+  if(!sel || sel.options.length > 1) return;
+  INDIAN_STATES.forEach(s=>{
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+}
+
+function openModal(id){
+  const el = document.getElementById(id);
+  if(el){ el.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); lucide.createIcons(); }
+}
+function closeModal(id){
+  const el = document.getElementById(id);
+  if(el){ el.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+}
+window.addEventListener('click',(e)=>{
+  ['loginModal','signupModal'].forEach(id=>{
+    const modal = document.getElementById(id);
+    if(modal && e.target === modal) closeModal(id);
+  });
+});
+
+function toggleVisibility(inputId, iconId){
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  icon.setAttribute('data-lucide', showing ? 'eye' : 'eye-off');
+  lucide.createIcons();
+}
+
+function showFieldError(id, show){
+  const el = document.getElementById('err-'+id);
+  if(el) el.classList.toggle('show', !!show);
+}
+
+function showAuthToast(msg){
+  const toast = document.getElementById('authToast');
+  document.getElementById('authToastMsg').textContent = msg;
+  toast.classList.remove('hidden');
+  lucide.createIcons();
+  setTimeout(()=>toast.classList.add('hidden'), 4000);
+}
+
+function handleLogin(e){
+  e.preventDefault();
+  let valid = true;
+  const id = document.getElementById('loginId').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  showFieldError('loginId', !id); if(!id) valid = false;
+  showFieldError('loginPassword', !pw); if(!pw) valid = false;
+  if(!valid) return;
+  closeModal('loginModal');
+  showAuthToast('Welcome back! You are now logged in.');
+  document.getElementById('loginForm').reset();
+}
+
+// Simulated set of already-registered User IDs, for uniqueness validation
+const TAKEN_USER_IDS = ['admin','ecoscan','rtoofficer','testuser'];
+
+function handleSignup(e){
+  e.preventDefault();
+  let valid = true;
+
+  const name = document.getElementById('suName').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const mobile = document.getElementById('suMobile').value.trim();
+  const userId = document.getElementById('suUserId').value.trim();
+  const state = document.getElementById('suState').value;
+  const password = document.getElementById('suPassword').value;
+  const confirmPassword = document.getElementById('suConfirmPassword').value;
+  const terms = document.getElementById('suTerms').checked;
+
+  showFieldError('suName', !name); if(!name) valid = false;
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  showFieldError('suEmail', !emailOk); if(!emailOk) valid = false;
+
+  const mobileOk = /^\d{10}$/.test(mobile);
+  showFieldError('suMobile', !mobileOk); if(!mobileOk) valid = false;
+
+  const userIdTaken = !userId || TAKEN_USER_IDS.includes(userId.toLowerCase());
+  showFieldError('suUserId', userIdTaken); if(userIdTaken) valid = false;
+
+  showFieldError('suState', !state); if(!state) valid = false;
+
+  const pwOk = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+  showFieldError('suPassword', !pwOk); if(!pwOk) valid = false;
+
+  const confirmOk = confirmPassword === password && confirmPassword.length > 0;
+  showFieldError('suConfirmPassword', !confirmOk); if(!confirmOk) valid = false;
+
+  showFieldError('suTerms', !terms); if(!terms) valid = false;
+
+  if(!valid) return;
+
+  TAKEN_USER_IDS.push(userId.toLowerCase());
+  closeModal('signupModal');
+  showAuthToast('Account created successfully! Welcome to EcoScan India.');
+  document.getElementById('signupForm').reset();
+}
+</script>
+</body>
+</html>

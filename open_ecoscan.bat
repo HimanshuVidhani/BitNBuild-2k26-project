@@ -1,0 +1,3 @@
+@echo off
+echo Starting EcoScan-India...
+start "" "index.html"

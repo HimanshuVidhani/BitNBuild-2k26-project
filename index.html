@@ -1,0 +1,2985 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoScan India - Smart Vehicle Compliance Platform</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- QRCode.js CDN — same library used on the deployed ecoscan-india.vercel.app -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- jsQR for decoding QR codes from the live camera feed -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <!-- jsPDF for generating a real, downloadable Print PDF of the QR tag -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace'],
+          },
+          colors: {
+            eco: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              navy: '#0f172a',
+              dark: '#0a192f',
+              cardDark: '#081c24'
+            }
+          },
+          boxShadow: {
+            'glow': '0 0 30px -6px rgba(16,185,129,.45)',
+            'glow-green': '0 0 25px -5px rgba(16, 185, 129, 0.4)',
+            'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.18)',
+            'card-hover': '0 20px 30px -10px rgba(0, 0, 0, 0.08)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      background-color: #f8fafc;
+    }
+
+    /* Custom Glassmorphism */
+    .glass-card {
+      background: rgba(10, 25, 47, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .glass-light {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .glass-green {
+      background: rgba(5, 150, 105, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(110, 231, 183, 0.4);
+    }
+
+    /* Plate scanner HUD glow */
+    .hud-scanner {
+      box-shadow: 0 0 15px #10b981, inset 0 0 15px rgba(16, 185, 129, 0.3);
+      border: 2px solid #34d399;
+      position: relative;
+      animation: pulseGlow 2.5s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        box-shadow: 0 0 10px #10b981;
+      }
+
+      100% {
+        box-shadow: 0 0 22px #34d399, inset 0 0 12px rgba(52, 211, 153, 0.5);
+      }
+    }
+
+    /* Scanner laser animation */
+    @keyframes scanMove {
+      0% {
+        top: 0%;
+        opacity: 0.8;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        top: 100%;
+        opacity: 0.8;
+      }
+    }
+
+    .scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #34d399, #10b981, #34d399, transparent);
+      box-shadow: 0 0 10px #34d399;
+      animation: scanMove 2s ease-in-out infinite alternate;
+    }
+
+    /* Floating badges animation */
+    @keyframes floatSlow {
+
+      0%,
+      100% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-7px);
+      }
+    }
+
+    .float-anim {
+      animation: floatSlow 4.5s ease-in-out infinite;
+    }
+
+    .float-anim-delay {
+      animation: floatSlow 5s ease-in-out 1.5s infinite;
+    }
+
+    /* Hero curved bottom shape */
+    .hero-curve-bottom {
+      border-radius: 0 0 50% 50% / 0 0 30px 30px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+
+<body class="text-slate-800 bg-slate-50 relative selection:bg-emerald-500 selection:text-white">
+  <div id="landing-page">
+
+
+    <!-- NAV -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100">
+      <div class="max-w-6xl mx-auto px-6 h-18 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div
+            class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white">
+            <i data-lucide="leaf" class="w-5 h-5"></i></div>
+          <div>
+            <div class="text-xl font-extrabold text-slate-900">EcoScan <span class="text-emerald-600">India</span></div>
+            <div class="text-[10px] uppercase tracking-wide text-slate-500">National Vehicle Compliance Platform</div>
+          </div>
+        </div>
+        <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+          <a href="#problem" class="hover:text-emerald-600">Why It's Needed</a>
+          <a href="#features" class="hover:text-emerald-600">Features</a>
+          <a href="#impact" class="hover:text-emerald-600">Impact</a>
+        </nav>
+        <div class="flex items-center gap-3">
+          <button onclick="openModal('loginModal')"
+            class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-slate-300 text-slate-700 text-sm font-semibold hover:border-slate-400 hover:bg-slate-50 transition">
+            <i data-lucide="log-in" class="w-4 h-4"></i>Login
+          </button>
+          <button onclick="openModal('signupModal')"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-600/25 transition">
+            Sign Up<i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative overflow-hidden bg-eco-navy text-white">
+      <div class="absolute inset-0 grid-lines opacity-60"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-eco-navy via-eco-navy/95 to-eco-navy"></div>
+      <div class="max-w-6xl mx-auto px-6 py-24 relative grid lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 space-y-6">
+          <div
+            class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> National Vehicle Compliance Platform
+          </div>
+          <h1 class="text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+            One scan. Every compliance check. <span class="text-emerald-400">Every vehicle in India.</span>
+          </h1>
+          <p class="text-slate-300 text-base sm:text-lg leading-relaxed max-w-xl">
+            EcoScan India unifies PUC, insurance, fitness and tax verification into a single real-time platform — linked
+            directly to VAHAN and Parivahan — so no vehicle slips through fragmented, paper-based checks again.
+          </p>
+          <div class="flex flex-wrap gap-4 pt-2">
+            <a href="#features"
+              class="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-eco-navy font-bold text-sm shadow-glow transition">See
+              the Platform</a>
+            <a href="#tech"
+              class="inline-flex items-center gap-2 px-6 py-3.5 rounded-full border border-white/20 hover:border-white/40 text-white font-semibold text-sm transition">View
+              Architecture</a>
+          </div>
+          <div class="pt-8 grid grid-cols-3 gap-6 border-t border-white/10 max-w-lg">
+            <div>
+              <div class="num text-2xl font-bold text-emerald-400">4</div>
+              <div class="text-xs text-slate-400">Checks, one scan</div>
+            </div>
+            <div>
+              <div class="num text-2xl font-bold text-emerald-400">&lt;1s</div>
+              <div class="text-xs text-slate-400">Database lookup</div>
+            </div>
+            <div>
+              <div class="num text-2xl font-bold text-emerald-400">100%</div>
+              <div class="text-xs text-slate-400">Paperless audit trail</div>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-5">
+          <div class="relative rounded-2xl border border-emerald-500/30 bg-eco-card p-6 shadow-2xl">
+            <div class="relative rounded-xl border-2 border-emerald-400/60 bg-black/40 p-5 overflow-hidden">
+              <div class="laser"></div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs text-slate-400 num">VEHICLE HEALTH CARD</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-eco-navy font-bold">GREEN</span>
+              </div>
+              <div class="text-2xl num font-bold tracking-widest text-emerald-300 mb-4">DL 8C AX 1234</div>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-300"><span>PUC Status</span><span
+                    class="text-emerald-400 font-semibold">Valid</span></div>
+                <div class="flex justify-between text-slate-300"><span>Insurance</span><span
+                    class="text-emerald-400 font-semibold">Active</span></div>
+                <div class="flex justify-between text-slate-300"><span>Fitness / RC</span><span
+                    class="text-emerald-400 font-semibold">Verified</span></div>
+                <div class="flex justify-between text-slate-300"><span>Road Tax / Challans</span><span
+                    class="text-emerald-400 font-semibold">Clear</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM / SOLUTION -->
+    <section id="problem" class="py-20 bg-white">
+      <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
+        <div>
+          <h2 class="text-sm font-bold text-rose-600 mb-3">The Problem</h2>
+          <p class="text-2xl font-bold text-slate-900 leading-snug mb-4">Compliance data lives in five different places
+            — so it's rarely checked at all.</p>
+          <p class="text-slate-600 leading-relaxed">Fragmented verification, fake or expired documents, manual
+            bottlenecks at checkpoints, and aging vehicles pushing emissions higher all stem from one root issue: no
+            single, trusted source of truth.</p>
+        </div>
+        <div>
+          <h2 class="text-sm font-bold text-emerald-600 mb-3">The Solution</h2>
+          <p class="text-2xl font-bold text-slate-900 leading-snug mb-4">A single digital ecosystem, built on the
+            databases that already exist.</p>
+          <p class="text-slate-600 leading-relaxed">EcoScan combines IoT, OCR, AI-driven number plate recognition and
+            direct links to VAHAN/Parivahan to deliver compliance auditing in real time — for citizens, RTOs and
+            enforcement alike.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="py-20 bg-slate-50 border-y border-slate-200">
+      <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-3xl font-extrabold text-slate-900 mb-2">What the platform does</h2>
+        <p class="text-slate-500 mb-12 max-w-2xl">Six connected modules cover everything from roadside scanning to
+          state-level enforcement analytics.</p>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
+              <i data-lucide="scan-face" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">ANPR & OCR Scanner</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">A phone camera or CCTV feed extracts a plate number and
+              pulls live compliance data in milliseconds.</p>
+          </div>
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-teal-500/20">
+              <i data-lucide="clipboard-check" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">The 4-Check Dashboard</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">PUC, insurance, fitness/RC and road tax or challans — one
+              health card per vehicle, always current.</p>
+          </div>
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-lime-500 to-emerald-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-lime-500/20">
+              <i data-lucide="gauge-circle" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">Dynamic Eco-Score</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">Age, fuel type and maintenance history combine into a
+              score, shown as a green, yellow or red badge.</p>
+          </div>
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-400 text-white flex items-center justify-center mb-4 shadow-lg shadow-amber-500/20">
+              <i data-lucide="bell-ring" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">Automated Alerts</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">SMS and WhatsApp reminders reach owners weeks before a
+              certificate expires — and fleet operators the moment a vehicle falls out of line.</p>
+          </div>
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-slate-500/20">
+              <i data-lucide="shield-check" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">Enforcement Portal (B2G)</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">Traffic police and RTOs run mass checkpoint checks, issue
+              digital challans, and see pollution heatmaps by district.</p>
+          </div>
+          <div
+            class="feature-card p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl transition-shadow">
+            <div
+              class="feature-icon w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-sky-500/20">
+              <i data-lucide="shield-ellipsis" class="w-8 h-8"></i></div>
+            <h3 class="font-bold text-slate-900 mb-1.5">Secure API Gateway</h3>
+            <p class="text-sm text-slate-500 leading-relaxed">Insurers, marketplaces and lenders verify a vehicle's
+              legal standing instantly before underwriting or onboarding.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPACT -->
+    <section id="impact" class="py-20 bg-eco-navy text-white">
+      <div class="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+        <div>
+          <i data-lucide="wind" class="w-7 h-7 text-emerald-400 mb-4"></i>
+          <h3 class="font-bold mb-2">Cleaner air</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">Timely maintenance is enforced and high-emission vehicles
+            are identified and taken off the road faster.</p>
+        </div>
+        <div>
+          <i data-lucide="banknote" class="w-7 h-7 text-emerald-400 mb-4"></i>
+          <h3 class="font-bold mb-2">Economic efficiency</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">Paperless verification cuts checkpoint delays and closes
+            gaps that used to enable corruption and revenue loss.</p>
+        </div>
+        <div>
+          <i data-lucide="shield" class="w-7 h-7 text-emerald-400 mb-4"></i>
+          <h3 class="font-bold mb-2">Safer roads</h3>
+          <p class="text-sm text-slate-300 leading-relaxed">Only insured, fit and legally authorized vehicles stay in
+            circulation on Indian highways.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="contact" class="py-20 bg-emerald-600">
+      <div class="max-w-4xl mx-auto px-6 text-center text-white">
+        <h2 class="text-3xl font-extrabold mb-3">Bring EcoScan to your city or fleet</h2>
+        <p class="text-emerald-50 mb-8 max-w-xl mx-auto">Whether you're an RTO, a fleet operator, or a policy
+          stakeholder — get the full technical walkthrough.</p>
+        <a href="mailto:support@ecoscan-india.gov.in"
+          class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-white text-emerald-700 font-bold text-sm shadow-lg hover:bg-emerald-50 transition">Contact
+          the Team <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-[#0f1d2e] text-slate-400 py-8">
+      <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+        <p>© 2026 EcoScan India Platform. A national initiative for cleaner, compliant roads.</p>
+        <div class="flex items-center gap-2 text-slate-500">
+          <i data-lucide="link" class="w-3.5 h-3.5"></i> Integrated with VAHAN · Parivahan · DigiLocker
+        </div>
+      </div>
+    </footer>
+
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-eco-navy text-white relative">
+          <button onclick="closeModal('loginModal')" class="absolute top-5 right-5 text-white/70 hover:text-white"><i
+              data-lucide="x" class="w-5 h-5"></i></button>
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3"><i
+              data-lucide="log-in" class="w-5 h-5 text-emerald-400"></i></div>
+          <h3 class="text-lg font-bold">Welcome back</h3>
+          <p class="text-xs text-slate-300">Sign in to your EcoScan India account</p>
+        </div>
+        <form id="loginForm" onsubmit="handleLogin(event)" class="p-6 space-y-4" novalidate>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email or User ID</label>
+            <input id="loginId" type="text" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="field-error" id="err-loginId">Please enter your email or user ID.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <div class="relative">
+              <input id="loginPassword" type="password" required
+                class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button type="button" onclick="toggleVisibility('loginPassword','loginPasswordIcon')"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i id="loginPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="field-error" id="err-loginPassword">Please enter your password.</div>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <label class="flex items-center gap-2 text-slate-600"><input type="checkbox"
+                class="rounded border-slate-300"> Remember me</label>
+            <a href="#" onclick="alert('Password reset link sent if the account exists.');return false;"
+              class="text-emerald-600 font-semibold hover:underline">Forgot password?</a>
+          </div>
+          <button type="submit"
+            class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition">Login</button>
+          <p class="text-center text-xs text-slate-500">New here? <button type="button"
+              onclick="closeModal('loginModal');openModal('signupModal')"
+              class="text-emerald-600 font-semibold hover:underline">Create an account</button></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- SIGN UP MODAL -->
+    <div id="signupModal"
+      class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4 overflow-y-auto py-8">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 my-auto">
+        <div class="p-6 bg-eco-navy text-white relative">
+          <button onclick="closeModal('signupModal')" class="absolute top-5 right-5 text-white/70 hover:text-white"><i
+              data-lucide="x" class="w-5 h-5"></i></button>
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-3"><i
+              data-lucide="user-plus" class="w-5 h-5 text-emerald-400"></i></div>
+          <h3 class="text-lg font-bold">Create your account</h3>
+          <p class="text-xs text-slate-300">Join the EcoScan India compliance network</p>
+        </div>
+        <form id="signupForm" onsubmit="handleSignup(event)" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto"
+          novalidate>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+            <input id="suName" type="text" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="field-error" id="err-suName">Please enter your full name.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+            <input id="suEmail" type="email" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="field-error" id="err-suEmail">Please enter a valid email address.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Mobile Number</label>
+            <input id="suMobile" type="tel" maxlength="10" placeholder="10-digit mobile number" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="field-error" id="err-suMobile">Mobile number must be exactly 10 digits.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">User ID (Unique Username)</label>
+            <input id="suUserId" type="text" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="field-error" id="err-suUserId">This User ID is already taken. Try another.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">State</label>
+            <select id="suState" required
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="">Select your state / UT</option>
+            </select>
+            <div class="field-error" id="err-suState">Please select your state.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <div class="relative">
+              <input id="suPassword" type="password" required
+                class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button type="button" onclick="toggleVisibility('suPassword','suPasswordIcon')"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i id="suPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="field-error" id="err-suPassword">Min 8 characters, with uppercase, lowercase, number & special
+              character.</div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Confirm Password</label>
+            <div class="relative">
+              <input id="suConfirmPassword" type="password" required
+                class="w-full px-4 py-2.5 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button type="button" onclick="toggleVisibility('suConfirmPassword','suConfirmPasswordIcon')"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <i id="suConfirmPasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="field-error" id="err-suConfirmPassword">Passwords do not match.</div>
+          </div>
+          <label class="flex items-start gap-2 text-xs text-slate-600">
+            <input id="suTerms" type="checkbox" class="mt-0.5 rounded border-slate-300" required>
+            <span>I agree to the Terms & Conditions and Privacy Policy.</span>
+          </label>
+          <div class="field-error" id="err-suTerms">You must accept the Terms & Conditions.</div>
+          <button type="submit"
+            class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition">Create
+            Account</button>
+          <p class="text-center text-xs text-slate-500">Already have an account? <button type="button"
+              onclick="closeModal('signupModal');openModal('loginModal')"
+              class="text-emerald-600 font-semibold hover:underline">Login</button></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- SUCCESS TOAST -->
+    <div id="authToast"
+      class="fixed bottom-6 right-6 z-[60] hidden bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-sm font-semibold">
+      <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+      <span id="authToastMsg">Success</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      const SUPABASE_URL = "https://fxkllbnoztsuzcigpniy.supabase.co/rest/v1/";
+      const SUPABASE_KEY = "sb_publishable_jodPrYt7hY-7p7CWb28Wkg_P8NXwOGu";
+      const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+        populateStates();
+      });
+
+      const INDIAN_STATES = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"];
+
+      function populateStates() {
+        const sel = document.getElementById('suState');
+        if (!sel || sel.options.length > 1) return;
+        INDIAN_STATES.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s;
+          sel.appendChild(opt);
+        });
+      }
+
+      function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); lucide.createIcons(); }
+      }
+      function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+      }
+      window.addEventListener('click', (e) => {
+        ['loginModal', 'signupModal'].forEach(id => {
+          const modal = document.getElementById(id);
+          if (modal && e.target === modal) closeModal(id);
+        });
+      });
+
+      function toggleVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        icon.setAttribute('data-lucide', showing ? 'eye' : 'eye-off');
+        lucide.createIcons();
+      }
+
+      function showFieldError(id, show) {
+        const el = document.getElementById('err-' + id);
+        if (el) el.classList.toggle('show', !!show);
+      }
+
+      function showAuthToast(msg) {
+        const toast = document.getElementById('authToast');
+        document.getElementById('authToastMsg').textContent = msg;
+        toast.classList.remove('hidden');
+        lucide.createIcons();
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      function handleLogin(e) {
+        e.preventDefault();
+        let valid = true;
+        const id = document.getElementById('loginId').value.trim();
+        const pw = document.getElementById('loginPassword').value;
+        showFieldError('loginId', !id); if (!id) valid = false;
+        showFieldError('loginPassword', !pw); if (!pw) valid = false;
+        if (!valid) return;
+        closeModal('loginModal');
+        showAuthToast('Welcome back! You are now logged in.');
+        setTimeout(() => { document.getElementById('landing-page').style.display = 'none'; document.getElementById('main-page').style.display = 'block'; }, 1000);
+        document.getElementById('loginForm').reset();
+      }
+
+      // Simulated set of already-registered User IDs, for uniqueness validation
+      const TAKEN_USER_IDS = ['admin', 'ecoscan', 'rtoofficer', 'testuser'];
+
+      async function handleSignup(e) {
+        e.preventDefault();
+        let valid = true;
+
+        const name = document.getElementById('suName').value.trim();
+        const email = document.getElementById('suEmail').value.trim();
+        const mobile = document.getElementById('suMobile').value.trim();
+        const userId = document.getElementById('suUserId').value.trim();
+        const state = document.getElementById('suState').value;
+        const password = document.getElementById('suPassword').value;
+        const confirmPassword = document.getElementById('suConfirmPassword').value;
+        const terms = document.getElementById('suTerms').checked;
+
+        showFieldError('suName', !name); if (!name) valid = false;
+
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        showFieldError('suEmail', !emailOk); if (!emailOk) valid = false;
+
+        const mobileOk = /^\d{10}$/.test(mobile);
+        showFieldError('suMobile', !mobileOk); if (!mobileOk) valid = false;
+
+        const userIdTaken = !userId || TAKEN_USER_IDS.includes(userId.toLowerCase());
+        showFieldError('suUserId', userIdTaken); if (userIdTaken) valid = false;
+
+        showFieldError('suState', !state); if (!state) valid = false;
+
+        const pwOk = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+        showFieldError('suPassword', !pwOk); if (!pwOk) valid = false;
+
+        const confirmOk = confirmPassword === password && confirmPassword.length > 0;
+        showFieldError('suConfirmPassword', !confirmOk); if (!confirmOk) valid = false;
+
+        showFieldError('suTerms', !terms); if (!terms) valid = false;
+
+        if (!valid) return;
+
+        try {
+          const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password
+          });
+
+          if (authError) {
+            alert("Registration error: " + authError.message);
+            return;
+          }
+
+          if (authData && authData.user) {
+            const { error: dbError } = await supabaseClient
+              .from("users")
+              .insert({
+                id: authData.user.id,
+                name: name,
+                email: email,
+                mobile: mobile
+              });
+
+            if (dbError) {
+              console.error("Supabase insert error:", dbError);
+              alert("Account created, but there was an error saving your profile. Please contact support.");
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Unexpected error during signup:", err);
+          alert("An unexpected error occurred. Please try again.");
+          return;
+        }
+
+        TAKEN_USER_IDS.push(userId.toLowerCase());
+        closeModal('signupModal');
+        showAuthToast('Account created successfully! A confirmation email may have been sent.');
+        setTimeout(() => { document.getElementById('landing-page').style.display = 'none'; document.getElementById('main-page').style.display = 'block'; }, 1000);
+        document.getElementById('signupForm').reset();
+      }
+    </script>
+
+  </div>
+  <div id="main-page" style="display: none;">
+
+
+    <!-- Hidden holder for off-screen QR code rendering (matches deployed site pattern) -->
+    <div id="qr-hidden-holder" style="position:absolute;left:-9999px;top:-9999px;"></div>
+
+    <!-- ================= TOP NAVIGATION ================= -->
+    <header
+      class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-100 transition-all duration-300">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-3 group">
+          <div
+            class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+            <i data-lucide="leaf" class="w-6 h-6 stroke-[2.2]"></i>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center">
+              <span class="text-2xl font-extrabold text-slate-900 tracking-tight">EcoScan</span>
+              <span class="text-2xl font-extrabold text-emerald-600 ml-1">India</span>
+            </div>
+            <span class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">Cleaner Roads | Greener
+              Tomorrow</span>
+          </div>
+        </a>
+
+        <!-- Desktop Nav Menu -->
+        <nav class="hidden md:flex items-center space-x-1 lg:space-x-2">
+          <a href="#home" class="px-4 py-2 text-sm font-semibold text-emerald-700 relative flex flex-col items-center">
+            Home
+            <span class="w-6 h-0.5 bg-emerald-600 rounded-full mt-1"></span>
+          </a>
+          <a href="#services"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Services</a>
+          <a href="#dashboard" onclick="openModal('dashboardModal')"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Dashboard</a>
+          <a href="#compliance-map" onclick="openModal('mapModal')"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Compliance
+            Map</a>
+          <a href="#database" onclick="openModal('databaseModal')"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Database</a>
+          <a href="#about" onclick="openModal('aboutModal')"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">About</a>
+          <a href="#contact" onclick="openModal('contactModal')"
+            class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">Contact</a>
+        </nav>
+
+        <!-- CTA Button -->
+        <div class="hidden sm:flex items-center gap-3">
+          <button onclick="openModal('registerVehicleModal')"
+            class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm shadow-md shadow-emerald-600/25 transition-all hover:shadow-lg hover:shadow-emerald-600/35 active:scale-95">
+            <span>Get Started</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" class="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+          aria-label="Toggle Menu">
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Mobile Nav Dropdown -->
+      <div id="mobileMenu" class="hidden md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-3">
+        <a href="#home"
+          class="block px-3 py-2 text-base font-semibold text-emerald-600 bg-emerald-50 rounded-lg">Home</a>
+        <a href="#services"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">Services</a>
+        <a href="javascript:void(0)" onclick="openModal('dashboardModal')"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">Dashboard</a>
+        <a href="javascript:void(0)" onclick="openModal('mapModal')"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">Compliance Map</a>
+        <a href="javascript:void(0)" onclick="openModal('databaseModal')"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">Database</a>
+        <a href="javascript:void(0)" onclick="openModal('aboutModal')"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">About</a>
+        <a href="javascript:void(0)" onclick="openModal('contactModal')"
+          class="block px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 rounded-lg">Contact</a>
+        <div class="pt-3 flex flex-col gap-2 border-t border-slate-100">
+          <button onclick="openModal('registerVehicleModal')"
+            class="w-full flex items-center justify-center gap-2 py-2.5 rounded-full bg-emerald-600 text-white font-medium text-sm">
+            Get Started <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= HERO SECTION ================= -->
+    <section id="home"
+      class="relative min-h-[640px] lg:min-h-[720px] bg-gradient-to-b from-[#e8f5f0] via-[#d5ede3] to-[#e4f4ed] overflow-hidden">
+
+      <!-- Hero Background Image (Exact Reference Asset) -->
+      <div class="absolute inset-0 z-0 select-none pointer-events-none">
+        <img src="https://www.designarena.ai/u/0571c89a-443f-4a17-acac-1990234eae35"
+          alt="EcoScan India Hero Platform Preview"
+          class="w-full h-full object-cover object-center mix-blend-multiply opacity-25 lg:opacity-35" />
+        <!-- Gradient overlay for optimal readability & contrast -->
+        <div class="absolute inset-0 bg-gradient-to-r from-[#eef9f4]/95 via-[#eef9f4]/80 to-transparent lg:w-3/5"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+      </div>
+
+      <!-- Decorative background elements -->
+      <div class="absolute top-20 right-10 w-96 h-96 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute bottom-10 left-10 w-80 h-80 bg-teal-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-32 lg:pt-14 lg:pb-40 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+
+          <!-- Left Column: Copy & Actions -->
+          <div class="lg:col-span-6 space-y-6">
+
+            <!-- Pill Badge -->
+            <div
+              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-300 text-emerald-800 text-xs sm:text-sm font-semibold tracking-wide shadow-sm">
+              <i data-lucide="leaf" class="w-4 h-4 text-emerald-600 fill-emerald-600"></i>
+              <span>Smart Vehicle Compliance Platform</span>
+            </div>
+
+            <!-- Main Hero Headings -->
+            <div class="space-y-1">
+              <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Scan <span class="text-emerald-500">•</span> Verify <span class="text-emerald-500">•</span> Drive
+              </h1>
+              <h2 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-emerald-600 tracking-tight leading-tight">
+                Towards a Greener India
+              </h2>
+            </div>
+
+            <!-- Description paragraph -->
+            <p class="text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl font-normal">
+              EcoScan India helps you check vehicle compliance, generate QR codes, verify number plates and stay updated
+              with latest rules — all in one place.
+            </p>
+
+            <!-- Primary Actions CTA -->
+            <div class="flex flex-wrap items-center gap-4 pt-2">
+              <button onclick="openModal('registerVehicleModal')"
+                class="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm sm:text-base shadow-lg shadow-emerald-700/30 transition-all hover:scale-[1.02] active:scale-95">
+                <i data-lucide="car" class="w-5 h-5"></i>
+                <span>Register Vehicle</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+
+              <button onclick="openModal('scanQrModal')"
+                class="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-white/90 hover:bg-white text-slate-800 border border-slate-300/80 font-semibold text-sm sm:text-base shadow-sm hover:shadow-md transition-all hover:border-slate-400 active:scale-95">
+                <i data-lucide="qr-code" class="w-5 h-5 text-slate-700"></i>
+                <span>Scan QR</span>
+                <i data-lucide="arrow-right" class="w-4 h-4 text-slate-500"></i>
+              </button>
+            </div>
+
+            <!-- Quick Stats Row -->
+            <div class="pt-6 grid grid-cols-3 gap-3 sm:gap-6 border-t border-emerald-900/10">
+              <!-- Stat 1 -->
+              <div class="flex items-center gap-2.5 sm:gap-3">
+                <div
+                  class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <i data-lucide="car" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <div>
+                  <div class="text-base sm:text-lg font-bold text-slate-900">10M+</div>
+                  <div class="text-[11px] sm:text-xs text-slate-500 font-medium">Vehicles Checked</div>
+                </div>
+              </div>
+
+              <!-- Stat 2 -->
+              <div class="flex items-center gap-2.5 sm:gap-3">
+                <div
+                  class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <i data-lucide="shield-check" class="w-5 h-5 text-emerald-100"></i>
+                </div>
+                <div>
+                  <div class="text-base sm:text-lg font-bold text-slate-900">98%</div>
+                  <div class="text-[11px] sm:text-xs text-slate-500 font-medium">Compliance Rate</div>
+                </div>
+              </div>
+
+              <!-- Stat 3 -->
+              <div class="flex items-center gap-2.5 sm:gap-3">
+                <div
+                  class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-teal-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <i data-lucide="leaf" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                  <div class="text-base sm:text-lg font-bold text-slate-900">Cleaner</div>
+                  <div class="text-[11px] sm:text-xs text-slate-500 font-medium">Environment</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Interactive Vehicle HUD and Holographic Compliance Widgets -->
+          <div class="lg:col-span-6 relative flex justify-center items-center py-6">
+
+            <!-- Car Interactive Simulation Container -->
+            <div
+              class="relative w-full max-w-lg aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-white/60 bg-gradient-to-b from-slate-800 to-slate-950 flex items-center justify-center">
+
+              <!-- Car Image simulation with India Gate backdrop -->
+              <img src="https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1000&q=80"
+                alt="Connected Smart Vehicle"
+                class="absolute inset-0 w-full h-full object-cover object-center opacity-85 hover:scale-105 transition-transform duration-700" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent"></div>
+
+              <!-- HUD Overlay 1: Top Floating "Vehicle Compliant" Banner -->
+              <div class="absolute top-4 left-4 z-20 float-anim">
+                <div class="glass-green text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+                    <i data-lucide="check" class="w-4 h-4 text-white stroke-[3]"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold leading-none">Vehicle Compliant</h4>
+                    <p class="text-[10px] text-emerald-100 font-medium mt-0.5">All documents verified</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HUD Overlay 2: Floating Vehicle Info Card (Right side) -->
+              <div class="absolute top-8 right-4 z-20 float-anim-delay">
+                <div class="glass-card text-white p-3.5 rounded-2xl shadow-xl w-44 border border-teal-400/30">
+                  <div class="bg-black/60 border border-teal-500/40 rounded-lg px-2.5 py-1 mb-2.5 text-center">
+                    <span class="font-mono font-bold text-xs tracking-wider text-emerald-300">DL 8C AX 1234</span>
+                  </div>
+                  <div class="space-y-1.5 text-[11px]">
+                    <div class="flex justify-between text-slate-300">
+                      <span>Vehicle Type</span>
+                      <span class="font-semibold text-white">Car</span>
+                    </div>
+                    <div class="flex justify-between text-slate-300">
+                      <span>Fuel Type</span>
+                      <span class="font-semibold text-white">Petrol</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-300">
+                      <span>Owner Status</span>
+                      <span
+                        class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HUD Overlay 3: Compliance Checklist (Bottom Left) -->
+              <div class="absolute bottom-6 left-5 z-20">
+                <div
+                  class="glass-card text-white px-4 py-3 rounded-2xl shadow-xl border border-white/20 space-y-2 text-xs">
+                  <div class="flex items-center gap-2 font-medium">
+                    <div class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                      <i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>
+                    </div>
+                    <span class="text-slate-100">PUC Valid (180d)</span>
+                  </div>
+                  <div class="flex items-center gap-2 font-medium">
+                    <div class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                      <i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>
+                    </div>
+                    <span class="text-slate-100">Insurance Active</span>
+                  </div>
+                  <div class="flex items-center gap-2 font-medium">
+                    <div class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                      <i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>
+                    </div>
+                    <span class="text-slate-100">Registration Clean</span>
+                  </div>
+                  <div class="flex items-center gap-2 font-medium">
+                    <div class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+                      <i data-lucide="check" class="w-3 h-3 stroke-[3]"></i>
+                    </div>
+                    <span class="text-slate-100">Road Tax Paid</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HUD Overlay 4: Live License Plate Scan Target (Center) -->
+              <div class="absolute bottom-16 right-10 sm:right-16 z-20 cursor-pointer"
+                onclick="openPlateDetails('DL 8C AX 1234')">
+                <div class="hud-scanner rounded-lg px-4 py-2 bg-slate-900/90 text-white flex items-center gap-2">
+                  <div class="scan-laser"></div>
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span class="font-mono font-bold tracking-widest text-sm text-emerald-300">DL 8C AX 1234</span>
+                  <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div
+                  class="text-[10px] text-emerald-300 font-mono text-center mt-1 bg-black/60 px-2 py-0.5 rounded backdrop-blur-sm">
+                  Click to inspect live record
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Smooth Bottom Organic Curved Shape -->
+      <div class="absolute bottom-0 left-0 right-0 h-16 sm:h-20 bg-white pointer-events-none"
+        style="clip-path: ellipse(65% 100% at 50% 100%);"></div>
+    </section>
+
+
+    <!-- ================= LIVE LOCATION & NATIONAL NETWORK STATS ================= -->
+    <section class="bg-white py-14 px-4 sm:px-6 lg:px-8 border-b border-slate-100">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          <!-- Live Location Detection Card -->
+          <div class="lg:col-span-5 p-6 rounded-3xl bg-slate-900 text-white shadow-xl relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"></div>
+            <div class="relative flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center">
+                  <i data-lucide="locate-fixed" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-sm font-bold">Your Location</h3>
+              </div>
+              <span id="liveTrackDot" class="hidden items-center gap-1.5 text-[10px] font-bold text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> LIVE
+              </span>
+            </div>
+
+            <div class="relative grid grid-cols-2 gap-2.5 text-xs mb-4">
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">State / UT</span>
+                <span id="locState" class="font-bold text-white">Not detected</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">District</span>
+                <span id="locDistrict" class="font-bold text-white">—</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">Coordinates</span>
+                <span id="locCoords" class="font-bold text-white font-mono text-[11px]">—</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">Source</span>
+                <span id="locSource" class="font-bold text-white">—</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">RTO Zone</span>
+                <span id="locRto" class="font-bold text-white">—</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-slate-400 block text-[10px]">Compliance</span>
+                <span id="locCompliance" class="font-bold text-emerald-400">—</span>
+              </div>
+            </div>
+
+            <div class="relative flex gap-2.5">
+              <button onclick="detectLocation()"
+                class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Detect location
+              </button>
+              <button id="liveTrackBtn" onclick="toggleLiveTracking()"
+                class="flex-1 py-2.5 border border-white/20 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                Start live tracking
+              </button>
+            </div>
+          </div>
+
+          <!-- National Live Stats -->
+          <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col justify-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-emerald-700">32.4Cr</div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1">Registered vehicles India</div>
+            </div>
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-slate-900" id="statDbCount">0</div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1">Vehicles in database</div>
+            </div>
+            <div class="p-5 rounded-2xl bg-teal-50 border border-teal-100 flex flex-col justify-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-teal-700">36</div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1">States & UTs covered</div>
+            </div>
+            <div class="p-5 rounded-2xl bg-blue-50 border border-blue-100 flex flex-col justify-center">
+              <div class="text-xl sm:text-2xl font-extrabold text-blue-700" id="statSessionCount">0</div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1">Registered this session</div>
+            </div>
+            <div
+              class="p-5 rounded-2xl bg-amber-50 border border-amber-100 flex flex-col justify-center col-span-2 sm:col-span-1">
+              <div class="text-xl sm:text-2xl font-extrabold text-amber-700">3s</div>
+              <div class="text-[11px] text-slate-500 font-medium mt-1">Average scan time</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ================= SERVICES & CORE FEATURES GRID ================= -->
+    <section id="services" class="relative bg-white pt-6 pb-20 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+
+        <!-- Section Header -->
+        <div class="text-center max-w-3xl mx-auto mb-14">
+          <h3 class="text-xs sm:text-sm font-bold text-emerald-600 tracking-wider uppercase mb-2">Comprehensive Features
+          </h3>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Smart Solutions for Every
+            Vehicle Owner & Authority</h2>
+          <p class="mt-2 text-slate-500 text-sm sm:text-base">Click any service card below to launch the dedicated tool
+            or verify credentials.</p>
+        </div>
+
+        <!-- 6 Feature Cards Grid (Matching reference icons and titles) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+
+          <!-- Card 1: Vehicle Registration -->
+          <div onclick="openModal('registerVehicleModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="car" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-emerald-600 transition-colors">Vehicle
+              Registration</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Add and manage vehicle details with ease.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Register now</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 2: QR Generation -->
+          <div onclick="openModal('qrGenModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="qr-code" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors">QR
+              Generation</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Get unique QR codes for quick verification.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Generate QR</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 3: QR & Plate Scanner -->
+          <div onclick="openModal('scanQrModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="scan-line" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-purple-600 transition-colors">QR &
+              Plate Scanner</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Scan or enter number plate to check vehicle details.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Open scanner</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 4: Compliance Check -->
+          <div onclick="openModal('complianceModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="shield-check" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-amber-600 transition-colors">
+              Compliance Check</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Verify insurance, PUC, tax and more in seconds.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Check status</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 5: State-wise Map -->
+          <div onclick="openModal('mapModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="map-pin" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-teal-600 transition-colors">State-wise
+              Map</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">View compliance status across India.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Explore map</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 6: Alerts & Notifications -->
+          <div onclick="openModal('alertsModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="bell" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-rose-600 transition-colors">Alerts &
+              Notifications</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Stay informed about expiries and violations.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Manage alerts</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+          <!-- Card 7: Vehicle Database -->
+          <div onclick="openModal('databaseModal')"
+            class="group p-6 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 cursor-pointer flex flex-col items-center text-center">
+            <div
+              class="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center mb-4 transition-colors shadow-sm">
+              <i data-lucide="database" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900 mb-1.5 group-hover:text-indigo-600 transition-colors">Vehicle
+              Database</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">Browse and filter every registered vehicle record.</p>
+            <div
+              class="mt-4 text-xs font-semibold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <span>Open database</span> <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= LIVE VEHICLE QUICK LOOKUP SECTION ================= -->
+    <section class="bg-slate-50 py-12 border-y border-slate-200/80">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+        <h3 class="text-lg sm:text-xl font-bold text-slate-900 mb-2">Instant License Plate Compliance Lookup</h3>
+        <p class="text-slate-500 text-xs sm:text-sm mb-6">Enter any Indian vehicle registration number (e.g. DL 8C AX
+          1234, MH 02 CD 5678, KA 01 MJ 9999)</p>
+
+        <form onsubmit="handleQuickSearch(event)" class="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </div>
+            <input type="text" id="quickPlateInput" placeholder="e.g. DL 8C AX 1234" value="DL 8C AX 1234"
+              class="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-300 rounded-full font-mono uppercase tracking-wider font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm shadow-sm"
+              required />
+          </div>
+          <button type="submit"
+            class="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full shadow-md shadow-emerald-600/20 text-sm transition-all active:scale-95 flex items-center justify-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>Verify Now</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ================= GOVERNMENT PORTAL INTEGRATIONS FOOTER BANNER ================= -->
+    <footer class="bg-[#0f1d2e] text-white py-8 border-t border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-6">
+
+          <!-- Left Side: Title & Subtitle -->
+          <div class="text-center lg:text-left">
+            <h4 class="text-lg font-bold text-white tracking-wide">Integrated with Government Portals</h4>
+            <p class="text-xs text-slate-400 mt-1">Real-time data from official sources for accurate and trusted
+              information.</p>
+          </div>
+
+          <!-- Right Side: Official Badges Pill Cards -->
+          <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+
+            <!-- VAHAN -->
+            <div onclick="showPortalToast('VAHAN National Register')"
+              class="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2.5 rounded-xl shadow cursor-pointer transition-all hover:scale-105 flex items-center gap-2">
+              <div
+                class="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-amber-800 border border-amber-300">
+                🏛️
+              </div>
+              <span class="font-bold text-xs tracking-wider text-slate-800">VAHAN</span>
+            </div>
+
+            <!-- Parivahan -->
+            <div onclick="showPortalToast('Parivahan Sewa MoRTH')"
+              class="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2.5 rounded-xl shadow cursor-pointer transition-all hover:scale-105 flex items-center gap-2">
+              <div
+                class="w-5 h-5 rounded-full bg-amber-50 flex items-center justify-center text-[10px] font-bold text-amber-700">
+                🇮🇳
+              </div>
+              <span class="font-bold text-xs tracking-wide text-slate-800">Parivahan</span>
+            </div>
+
+            <!-- DigiLocker -->
+            <div onclick="showPortalToast('DigiLocker India')"
+              class="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2.5 rounded-xl shadow cursor-pointer transition-all hover:scale-105 flex items-center gap-2">
+              <div
+                class="w-5 h-5 rounded bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">
+                DL
+              </div>
+              <span class="font-bold text-xs text-blue-950">DigiLocker</span>
+            </div>
+
+            <!-- iChallan -->
+            <div onclick="showPortalToast('iChallan MoRTH Enforcement Portal')"
+              class="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2.5 rounded-xl shadow cursor-pointer transition-all hover:scale-105 flex items-center gap-2">
+              <div
+                class="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-[10px] font-bold">
+                ⚡
+              </div>
+              <span class="font-bold text-xs text-slate-900">iChallan</span>
+            </div>
+
+            <!-- FASTag -->
+            <div onclick="showPortalToast('NETC FASTag NPCI')"
+              class="bg-white hover:bg-slate-100 text-slate-900 px-4 py-2.5 rounded-xl shadow cursor-pointer transition-all hover:scale-105 flex items-center gap-2">
+              <span class="font-black italic text-xs tracking-tight text-emerald-700">FAST<span
+                  class="text-orange-500">ag</span></span>
+            </div>
+
+            <!-- And More Button -->
+            <div onclick="openModal('integrationsModal')"
+              class="bg-slate-800/80 hover:bg-slate-800 text-slate-300 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>and more...</span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div
+          class="mt-8 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <p>© 2025 EcoScan India Platform. Designed for clean air & compliant transportation.</p>
+          <div class="flex items-center gap-4">
+            <a href="#" onclick="openModal('aboutModal')" class="hover:text-emerald-400">Privacy Policy</a>
+            <span>•</span>
+            <a href="#" onclick="openModal('aboutModal')" class="hover:text-emerald-400">Terms of Service</a>
+            <span>•</span>
+            <a href="#" onclick="openModal('contactModal')" class="hover:text-emerald-400">Support</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+
+    <!-- ================= INTERACTIVE MODALS & FEATURES ================= -->
+
+    <!-- MODAL: Vehicle Details / Scanner Inspection -->
+    <div id="plateModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div
+        class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100 transform transition-all">
+        <div class="bg-gradient-to-r from-emerald-700 to-teal-700 p-6 text-white relative">
+          <button onclick="closeModal('plateModal')"
+            class="absolute top-5 right-5 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <div class="flex items-center gap-3 mb-2">
+            <span class="px-3 py-1 rounded-full bg-emerald-500 text-white font-mono font-bold text-sm tracking-widest"
+              id="modalPlateNumber">DL 8C AX 1234</span>
+            <span id="modalVerifiedBadge"
+              class="px-2.5 py-0.5 rounded-full bg-emerald-300/30 text-emerald-100 text-xs font-semibold flex items-center gap-1">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-300"></i> <span
+                id="modalVerifiedText">Verified</span>
+            </span>
+          </div>
+          <h3 class="text-xl font-bold">Vehicle Compliance Summary</h3>
+          <p class="text-xs text-emerald-100">Synchronized with VAHAN & State Pollution Control Board</p>
+        </div>
+
+        <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <!-- Vehicle Specs -->
+          <div class="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs">
+            <div>
+              <span class="text-slate-400 block">Make & Model</span>
+              <span class="font-bold text-slate-800 text-sm" id="modalMakeModel">Hyundai Verna SX 1.5</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Fuel & Emission</span>
+              <span class="font-bold text-emerald-700 text-sm" id="modalFuel">Petrol • Bharat Stage VI</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">State / RTO</span>
+              <span class="font-bold text-slate-800" id="modalRto">RTO Delhi North (DL-08)</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block">Registered Owner</span>
+              <span class="font-bold text-slate-800" id="modalOwner">A**** K**** (Private)</span>
+            </div>
+          </div>
+
+          <!-- Compliance List -->
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between p-3 rounded-xl border" id="modalPucRow">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg text-white flex items-center justify-center" id="modalPucIcon">
+                  <i data-lucide="check" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h5 class="text-xs font-bold text-slate-800">PUC (Pollution Under Control)</h5>
+                  <p class="text-[11px] text-slate-500">Valid till: <strong id="modalPucDate"
+                      class="text-emerald-700">14 Nov 2025</strong></p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded text-white text-[11px] font-bold" id="modalPucBadge">VALID</span>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl border" id="modalInsRow">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg text-white flex items-center justify-center" id="modalInsIcon">
+                  <i data-lucide="shield" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h5 class="text-xs font-bold text-slate-800">Motor Insurance (Comprehensive)</h5>
+                  <p class="text-[11px] text-slate-500" id="modalInsDetail">HDFC ERGO • Valid till: <strong
+                      class="text-emerald-700">02 Jan 2026</strong></p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded text-white text-[11px] font-bold" id="modalInsBadge">ACTIVE</span>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                  <i data-lucide="receipt" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h5 class="text-xs font-bold text-slate-800">Motor Vehicle Tax / RC</h5>
+                  <p class="text-[11px] text-slate-500" id="modalRcDetail">One Time LTT Paid (Life Time)</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded bg-emerald-600 text-white text-[11px] font-bold"
+                id="modalRcBadge">PAID</span>
+            </div>
+
+            <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                  <i data-lucide="zap" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h5 class="text-xs font-bold text-slate-800">Challan & Traffic Fines</h5>
+                  <p class="text-[11px] text-slate-500">0 pending e-challans on VAHAN</p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded bg-emerald-600 text-white text-[11px] font-bold">CLEAR</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex gap-3">
+            <button onclick="downloadComplianceReport()"
+              class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
+              <i data-lucide="download" class="w-4 h-4"></i> Download Certificate
+            </button>
+            <button onclick="openModal('qrGenModal')"
+              class="py-3 px-4 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 flex items-center justify-center gap-1.5">
+              <i data-lucide="qr-code" class="w-4 h-4"></i> QR Sticker
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Register Vehicle -->
+    <div id="registerVehicleModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white">
+              <i data-lucide="car" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold">Register Your Vehicle</h3>
+              <p class="text-xs text-slate-400">Sync details for automated compliance updates</p>
+            </div>
+          </div>
+          <button onclick="closeModal('registerVehicleModal')" class="text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <form onsubmit="handleRegistrationSubmit(event)" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vehicle Registration Number *</label>
+              <input type="text" id="regPlateNum" placeholder="e.g. DL 01 AB 1234" required
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm uppercase font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Owner Name *</label>
+              <input type="text" id="regOwnerName" placeholder="Full name" required
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mobile Number *</label>
+              <input type="tel" id="regMobile" placeholder="+91 98765 43210" required
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">State / UT *</label>
+            <select id="regState" required
+              class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <option value="">Select state</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Vehicle Type</label>
+              <select id="regVehicleType"
+                class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option>Two wheeler</option>
+                <option>Three wheeler</option>
+                <option>Car / Sedan</option>
+                <option>SUV / MUV</option>
+                <option>Light commercial</option>
+                <option>Heavy commercial</option>
+                <option>Bus / Transport</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fuel Type</label>
+              <select id="regFuelType"
+                class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option>Petrol</option>
+                <option>Diesel</option>
+                <option>CNG</option>
+                <option>Electric</option>
+                <option>Hybrid</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Make & Model</label>
+            <input type="text" id="regModel" placeholder="e.g. Hyundai Verna SX 1.5"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+
+          <div class="pt-2 border-t border-slate-100">
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2 mt-2">Compliance Documents</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">PUC Certificate No.</label>
+                <input type="text" id="regPucNumber" placeholder="PUC-XXXXXX"
+                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">PUC Expiry Date *</label>
+                <input type="date" id="regPucExpiry" required
+                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Insurance Policy No.</label>
+                <input type="text" id="regInsuranceNumber" placeholder="Policy number"
+                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Insurance Expiry *</label>
+                <input type="date" id="regInsuranceExpiry" required
+                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div class="col-span-2">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">RC Valid Until *</label>
+                <input type="date" id="regRcValid" required
+                  class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-md transition-all">
+            Generate QR Code & Register Vehicle
+          </button>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- MODAL: QR Generator Tool -->
+    <div id="qrGenModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100 text-center">
+        <div class="p-6 bg-blue-600 text-white relative">
+          <button onclick="closeModal('qrGenModal')" class="absolute top-5 right-5 text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <i data-lucide="qr-code" class="w-10 h-10 mx-auto mb-2 text-white"></i>
+          <h3 class="text-xl font-bold">EcoScan QR Tag Generator</h3>
+          <p class="text-xs text-blue-100">Stick this on your windshield for instant touchless verification</p>
+        </div>
+
+        <div class="p-6 space-y-5">
+          <div
+            class="p-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center">
+            <!-- Live-generated QR code -->
+            <div
+              class="w-44 h-44 bg-white p-3 rounded-xl shadow-md flex items-center justify-center border border-slate-200 relative">
+              <div id="qrCodeContainer" class="w-full h-full flex items-center justify-center"></div>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div
+                  class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-md">
+                  🌿</div>
+              </div>
+            </div>
+            <p class="text-xs font-mono font-bold text-slate-800 mt-3">TAG ID: <span id="qrTagId">ECO-DEMO-2026</span>
+            </p>
+            <span class="text-[10px] text-emerald-600 font-semibold">100% Cryptographically Signed by MoRTH
+              Standards</span>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="downloadQrPdf()"
+              class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i> Download Print PDF
+            </button>
+            <button
+              onclick="alert('EcoScan Tag added to Apple Wallet / Google Wallet successfully!'); closeModal('qrGenModal');"
+              class="py-3 px-4 border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50">
+              Add to Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: QR & Plate Scanner (Camera Emulation) -->
+    <div id="scanQrModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div
+        class="bg-slate-900 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-800 text-white">
+        <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <h3 class="text-base font-bold">Live AI Number Plate & QR Scanner</h3>
+          </div>
+          <button onclick="closeModal('scanQrModal')" class="text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="p-6 max-h-[75vh] overflow-y-auto">
+          <!-- Live Camera Viewport -->
+          <div
+            class="relative w-full aspect-video rounded-2xl bg-black overflow-hidden flex items-center justify-center border border-slate-700">
+            <video id="cameraFeed" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+            <canvas id="cameraCanvas" class="hidden"></canvas>
+            <img id="cameraFallbackImg"
+              src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80"
+              class="w-full h-full object-cover opacity-60" alt="Camera Viewfinder">
+            <div class="scan-laser"></div>
+
+            <!-- Bounding box -->
+            <div
+              class="absolute w-3/4 h-2/5 border-2 border-dashed border-emerald-400 rounded-xl flex items-center justify-center bg-emerald-500/10 pointer-events-none">
+              <span id="scanBoxLabel" class="text-xs font-mono text-emerald-300 bg-black/70 px-3 py-1 rounded">Align
+                Plate or QR within box</span>
+            </div>
+            <span id="cameraStatusBadge"
+              class="absolute top-3 left-3 text-[10px] font-bold bg-black/70 text-slate-300 px-2.5 py-1 rounded-full">Camera
+              inactive</span>
+          </div>
+
+          <div class="mt-4 flex gap-2">
+            <button id="cameraStartBtn" onclick="startCamera()"
+              class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">
+              <i data-lucide="camera" class="w-3.5 h-3.5"></i> Start camera
+            </button>
+            <button id="cameraStopBtn" onclick="stopCamera()"
+              class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold opacity-50"
+              disabled>
+              Stop
+            </button>
+          </div>
+
+          <div class="mt-5 space-y-3">
+            <p class="text-xs text-slate-400 text-center">Or use manual plate entry / demo scans below</p>
+            <div class="flex gap-2">
+              <input type="text" id="manualScannerInput" placeholder="Or type plate manually..."
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500">
+              <button onclick="handleManualScanSearch()"
+                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-bold">
+                Verify compliance
+              </button>
+            </div>
+
+            <div class="pt-1">
+              <p class="text-[10px] uppercase font-bold text-slate-500 mb-2">Demo scans</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button onclick="runDemoScan('compliant')"
+                  class="py-2 rounded-xl bg-emerald-600/20 border border-emerald-600/40 text-emerald-300 text-[11px] font-bold hover:bg-emerald-600/30">Demo
+                  — fully compliant</button>
+                <button onclick="runDemoScan('non-compliant')"
+                  class="py-2 rounded-xl bg-rose-600/20 border border-rose-600/40 text-rose-300 text-[11px] font-bold hover:bg-rose-600/30">Demo
+                  — non-compliant</button>
+                <button onclick="runDemoScan('expiring')"
+                  class="py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold hover:bg-amber-500/30">Demo
+                  — expiring soon</button>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800">
+              <p class="text-[10px] uppercase font-bold text-slate-500 mb-2 mt-2">Session scan log</p>
+              <div id="scanLogList" class="space-y-1.5 max-h-32 overflow-y-auto text-[11px] text-slate-400">
+                No scans this session
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Compliance Check Center -->
+    <div id="complianceModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-amber-600 text-white relative">
+          <button onclick="closeModal('complianceModal')" class="absolute top-5 right-5 text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <i data-lucide="shield-alert" class="w-10 h-10 mb-2"></i>
+          <h3 class="text-xl font-bold">Vehicle Compliance Check</h3>
+          <p class="text-xs text-amber-100">Verify PUC, Fitness, Road Tax and Insurance validity instantly</p>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Enter Vehicle Number</label>
+            <input type="text" id="compPlateInput" value="DL 8C AX 1234"
+              class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono uppercase font-bold focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">State Transport Department</label>
+            <select class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium">
+              <option>Delhi (Transport Dept NCT of Delhi)</option>
+              <option>Maharashtra (Transport Commissionerate)</option>
+              <option>Karnataka (Transport Dept)</option>
+              <option>Tamil Nadu (State Transport)</option>
+              <option>Uttar Pradesh (UP Transport)</option>
+            </select>
+          </div>
+
+          <button
+            onclick="closeModal('complianceModal'); openPlateDetails(document.getElementById('compPlateInput').value);"
+            class="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-sm shadow-md transition-all">
+            Fetch Official Audit Report
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: State-Wise Compliance Map -->
+    <div id="mapModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-5 bg-teal-700 text-white flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <i data-lucide="map" class="w-6 h-6"></i>
+            <h3 class="text-base font-bold">Pan-India Green Vehicle Compliance Heatmap</h3>
+          </div>
+          <button onclick="closeModal('mapModal')" class="text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+            <span class="font-semibold text-slate-600">Your detected state</span>
+            <span id="mapDetectedState" class="font-bold text-teal-700">Not detected — use "Detect location"
+              above</span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div onclick="showStateDetail('Delhi NCR','97.4','PUC Compliant')"
+              class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 cursor-pointer hover:shadow-md transition-shadow">
+              <div class="text-xs text-emerald-800 font-bold">Delhi NCR</div>
+              <div class="text-lg font-extrabold text-emerald-600">97.4%</div>
+              <div class="text-[10px] text-emerald-600">PUC Compliant</div>
+            </div>
+            <div onclick="showStateDetail('Maharashtra','95.8','Active Tags')"
+              class="p-3 rounded-xl bg-teal-50 border border-teal-200 cursor-pointer hover:shadow-md transition-shadow">
+              <div class="text-xs text-teal-800 font-bold">Maharashtra</div>
+              <div class="text-lg font-extrabold text-teal-600">95.8%</div>
+              <div class="text-[10px] text-teal-600">Active Tags</div>
+            </div>
+            <div onclick="showStateDetail('Karnataka','96.2','EV Adoption #1')"
+              class="p-3 rounded-xl bg-blue-50 border border-blue-200 cursor-pointer hover:shadow-md transition-shadow">
+              <div class="text-xs text-blue-800 font-bold">Karnataka</div>
+              <div class="text-lg font-extrabold text-blue-600">96.2%</div>
+              <div class="text-[10px] text-blue-600">EV Adoption #1</div>
+            </div>
+          </div>
+
+          <div id="stateDetailPanel" class="hidden p-3.5 rounded-xl bg-slate-900 text-white text-xs"></div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-sm font-extrabold text-slate-900">28 + 8 UTs</div>
+              <div class="text-[10px] text-slate-500">States tracked</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-sm font-extrabold text-slate-900">76,000+</div>
+              <div class="text-[10px] text-slate-500">Fuel stations</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-sm font-extrabold text-slate-900">5Cr+</div>
+              <div class="text-[10px] text-slate-500">Daily scans target</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-sm font-extrabold text-slate-900">3 sec</div>
+              <div class="text-[10px] text-slate-500">Avg check time</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-4 text-[10px] text-slate-500 flex-wrap">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              90–100% excellent</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 70–89%
+              moderate</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Below 70%
+              poor</span>
+          </div>
+
+          <div class="p-4 bg-slate-900 text-white rounded-2xl space-y-3">
+            <div class="flex justify-between items-center text-xs font-bold text-slate-300">
+              <span>Live Regional Air Quality Index (AQI) Impact</span>
+              <span class="text-emerald-400">● Real-time CPCB Feed</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span>National Green Corridor Compliance:</span>
+                <span class="font-bold text-emerald-400">98.1% Validated</span>
+              </div>
+              <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full" style="width: 98%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="closeModal('mapModal')"
+            class="w-full py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl text-xs font-bold">
+            Close Map View
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Alerts & Notifications -->
+    <div id="alertsModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-5 bg-rose-600 text-white flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <i data-lucide="bell-ring" class="w-6 h-6"></i>
+            <h3 class="text-base font-bold">Alerts & Expiry Notifications</h3>
+          </div>
+          <button onclick="closeModal('alertsModal')" class="text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs space-y-1">
+            <div class="flex items-center justify-between font-bold text-amber-800">
+              <span>PUC Expiry Reminder</span>
+              <span class="text-[10px] text-amber-600">In 20 Days</span>
+            </div>
+            <p class="text-slate-600">Vehicle DL 8C AX 1234 PUC is valid until Nov 14, 2025. Nearby authorized centers
+              located.</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1">
+            <div class="flex items-center justify-between font-bold text-emerald-800">
+              <span>Insurance Renewed Successfully</span>
+              <span class="text-[10px] text-emerald-600">Yesterday</span>
+            </div>
+            <p class="text-slate-600">Policy verified on DigiLocker repository.</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+            <div class="flex items-center justify-between font-bold text-slate-800">
+              <span>Clean Air Incentive</span>
+              <span class="text-[10px] text-emerald-600">Active</span>
+            </div>
+            <p class="text-slate-600">You earned 120 Green Points for 100% on-time emissions testing!</p>
+          </div>
+        </div>
+
+        <div class="p-5 space-y-4 border-t border-slate-100 max-h-[45vh] overflow-y-auto">
+          <h4 class="text-xs font-bold text-slate-700 uppercase">Alert Configuration</h4>
+
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5">First alert before expiry</label>
+            <select id="cfgFirstAlert"
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option>30 days</option>
+              <option>45 days</option>
+              <option>60 days</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5">Alert delivery channel</label>
+            <select id="cfgChannel"
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option>SMS + App push</option>
+              <option>SMS only</option>
+              <option>App push only</option>
+              <option>Email + SMS + App</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5">On expiry — fuel action</label>
+            <select id="cfgFuelAction"
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option>Deny immediately</option>
+              <option>3-day grace period</option>
+              <option>Warn only, allow fuel</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1.5">Notify state RTO after</label>
+            <select id="cfgRtoNotify"
+              class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option>7 days expired</option>
+              <option>Immediately on expiry</option>
+              <option>Do not notify</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2">
+          <button onclick="saveAlertConfig()"
+            class="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold">
+            Save Configuration
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Dashboard Overview -->
+    <div id="dashboardModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white">
+              <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold">EcoScan Fleet & Citizen Dashboard</h3>
+              <p class="text-xs text-slate-400">Live operational overview</p>
+            </div>
+          </div>
+          <button onclick="closeModal('dashboardModal')" class="text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <div class="text-[10px] text-slate-500">Total Vehicles</div>
+              <div class="text-xl font-black text-slate-900 mt-1" id="dashTotal">0</div>
+            </div>
+            <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
+              <div class="text-[10px] text-emerald-700">Compliant</div>
+              <div class="text-xl font-black text-emerald-700 mt-1" id="dashCompliant">0</div>
+            </div>
+            <div class="bg-rose-50 p-3.5 rounded-xl border border-rose-200">
+              <div class="text-[10px] text-rose-700">Non-compliant</div>
+              <div class="text-xl font-black text-rose-700 mt-1" id="dashNonCompliant">0</div>
+            </div>
+            <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
+              <div class="text-[10px] text-amber-700">Expiring (30d)</div>
+              <div class="text-xl font-black text-amber-700 mt-1" id="dashExpiring">0</div>
+            </div>
+          </div>
+
+          <div>
+            <h5 class="text-xs font-bold text-slate-700 uppercase mb-2">State-wise Compliance Rate</h5>
+            <div id="dashStateBars" class="space-y-2"></div>
+          </div>
+
+          <div>
+            <h5 class="text-xs font-bold text-slate-700 uppercase mb-2">Vehicle Type Breakdown</h5>
+            <div id="dashTypeBars" class="space-y-2"></div>
+          </div>
+
+          <div>
+            <h5 class="text-xs font-bold text-slate-700 uppercase mb-2">Recent Registrations</h5>
+            <div id="dashRecent" class="space-y-1.5 text-xs"></div>
+          </div>
+
+          <div>
+            <h5 class="text-xs font-bold text-slate-700 uppercase mb-2">Top Violations</h5>
+            <div id="dashViolations" class="space-y-1.5 text-xs"></div>
+          </div>
+
+          <div>
+            <h5 class="text-xs font-bold text-slate-700 uppercase mb-2">API Integration Status</h5>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                VAHAN API <span class="text-emerald-600 font-bold">Live</span></div>
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                Parivahan <span class="text-emerald-600 font-bold">Live</span></div>
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                DigiLocker <span class="text-emerald-600 font-bold">Live</span></div>
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                iChallan API <span class="text-amber-600 font-bold">Partial</span></div>
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                FASTag <span class="text-blue-600 font-bold">Beta</span></div>
+              <div
+                class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-[11px] font-semibold text-slate-700">
+                BS-VI Checker <span class="text-emerald-600 font-bold">Active</span></div>
+            </div>
+          </div>
+
+          <button onclick="closeModal('dashboardModal')"
+            class="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-bold">
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: About & Contact -->
+    <div id="aboutModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-emerald-700 text-white relative">
+          <button onclick="closeModal('aboutModal')" class="absolute top-5 right-5 text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <h3 class="text-xl font-bold">About EcoScan India</h3>
+          <p class="text-xs text-emerald-100">Cleaner Roads | Greener Tomorrow Initiative</p>
+        </div>
+        <div class="p-6 space-y-4 text-xs text-slate-600 leading-relaxed">
+          <p><strong>EcoScan India</strong> is a next-generation smart transportation compliance and vehicular emissions
+            monitoring platform. Designed to integrate directly with national registries like VAHAN, Parivahan, and
+            DigiLocker, EcoScan empowers millions of vehicle owners and traffic enforcement departments to transition
+            towards zero-emission non-polluting roadways.</p>
+          <p>Key pillars include instant optical plate verification (ALPR), cryptographically verified green QR tags,
+            proactive PUC renewal notifications, and emission compliance mapping.</p>
+          <button onclick="closeModal('aboutModal')" class="w-full py-3 bg-emerald-700 text-white rounded-xl font-bold">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="contactModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-slate-900 text-white relative">
+          <button onclick="closeModal('contactModal')" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <h3 class="text-lg font-bold">Contact EcoScan Support</h3>
+          <p class="text-xs text-slate-400">Assistance for citizens, RTOs and enforcement officers</p>
+        </div>
+        <div class="p-6 space-y-3 text-xs">
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400 block text-[10px]">Toll-Free Helpline</span>
+            <span class="font-bold text-slate-800 text-sm">1800-ECO-SCAN (1800-326-7226)</span>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400 block text-[10px]">Email Support</span>
+            <span class="font-bold text-slate-800">support@ecoscan-india.gov.in</span>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl">
+            <span class="text-slate-400 block text-[10px]">HQ Office</span>
+            <span class="font-bold text-slate-800">Transport Bhawan, 1 Parliament Street, New Delhi</span>
+          </div>
+          <button onclick="closeModal('contactModal')"
+            class="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold mt-2">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Vehicle Database -->
+    <div id="databaseModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-5 bg-indigo-700 text-white flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <i data-lucide="database" class="w-6 h-6"></i>
+            <div>
+              <h3 class="text-base font-bold">Vehicle Database</h3>
+              <p class="text-[11px] text-indigo-100" id="dbRecordCount">0 records</p>
+            </div>
+          </div>
+          <button onclick="closeModal('databaseModal')" class="text-white/80 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-3">
+          <div class="flex flex-wrap gap-2 items-center">
+            <select id="dbFilterState" onchange="renderDatabaseTable()"
+              class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="">All states</option>
+            </select>
+            <select id="dbFilterStatus" onchange="renderDatabaseTable()"
+              class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+              <option value="">All status</option>
+              <option value="Compliant">Compliant</option>
+              <option value="Non-compliant">Non-compliant</option>
+              <option value="Expiring soon">Expiring soon</option>
+            </select>
+            <button onclick="clearDatabase()"
+              class="ml-auto px-3 py-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold hover:bg-rose-100">Clear
+              all</button>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-[11px] text-left">
+              <thead class="bg-slate-50 text-slate-500 uppercase text-[10px]">
+                <tr>
+                  <th class="px-3 py-2">Plate</th>
+                  <th class="px-3 py-2">Owner</th>
+                  <th class="px-3 py-2">State</th>
+                  <th class="px-3 py-2">Type</th>
+                  <th class="px-3 py-2">Fuel</th>
+                  <th class="px-3 py-2">PUC</th>
+                  <th class="px-3 py-2">Insurance</th>
+                  <th class="px-3 py-2">RC</th>
+                  <th class="px-3 py-2">Status</th>
+                  <th class="px-3 py-2">QR</th>
+                </tr>
+              </thead>
+              <tbody id="dbTableBody" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="10" class="px-3 py-6 text-center text-slate-400">No vehicles registered yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- MODAL: Government Portal Integrations -->
+    <div id="integrationsModal"
+      class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-slate-100">
+        <div class="p-6 bg-slate-900 text-white relative">
+          <button onclick="closeModal('integrationsModal')"
+            class="absolute top-5 right-5 text-slate-400 hover:text-white">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+          <h3 class="text-lg font-bold">Government Portal Integrations</h3>
+          <p class="text-xs text-slate-400">Live API integration status</p>
+        </div>
+        <div class="p-6 grid grid-cols-2 gap-2.5 text-xs">
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            VAHAN API <span class="text-emerald-600 font-bold">Live</span></div>
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            Parivahan <span class="text-emerald-600 font-bold">Live</span></div>
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            DigiLocker <span class="text-emerald-600 font-bold">Live</span></div>
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            iChallan <span class="text-amber-600 font-bold">Partial</span></div>
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            FASTag <span class="text-blue-600 font-bold">Beta</span></div>
+          <div
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between font-semibold text-slate-700">
+            BS-VI Checker <span class="text-emerald-600 font-bold">Active</span></div>
+          <button onclick="closeModal('integrationsModal')"
+            class="col-span-2 mt-2 w-full py-3 bg-slate-900 text-white rounded-xl font-bold">Close</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Toast Notification element -->
+    <div id="toast"
+      class="fixed bottom-6 right-6 z-50 hidden bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs font-semibold transform transition-all">
+      <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+      <span id="toastMsg">Action completed successfully</span>
+    </div>
+
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+      // Initialize Lucide Icons
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+        populateStateDropdowns();
+        refreshAllViews();
+        renderQrForVehicle({ plate: 'DL 8C AX 1234' });
+      });
+
+      // ================= DATA: STATES & UTS =================
+      const STATE_LIST = [
+        'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana',
+        'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+        'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana',
+        'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+        'Andaman & Nicobar', 'Chandigarh', 'Dadra & Nagar Haveli', 'Daman & Diu', 'Delhi', 'Jammu & Kashmir',
+        'Ladakh', 'Lakshadweep', 'Puducherry'
+      ];
+
+      const STATE_RTO_ZONE = {
+        'Delhi': 'DL — Zone 1 (NCT)', 'Maharashtra': 'MH — Zone 3 (West)', 'Karnataka': 'KA — Zone 5 (South)',
+        'Tamil Nadu': 'TN — Zone 5 (South)', 'Uttar Pradesh': 'UP — Zone 2 (North)'
+      };
+      const STATE_COMPLIANCE_AVG = {
+        'Delhi': '97.4%', 'Maharashtra': '95.8%', 'Karnataka': '96.2%'
+      };
+
+      function populateStateDropdowns() {
+        const targets = ['regState', 'dbFilterState'];
+        targets.forEach(id => {
+          const sel = document.getElementById(id);
+          if (!sel) return;
+          STATE_LIST.forEach(st => {
+            const opt = document.createElement('option');
+            opt.value = st;
+            opt.textContent = st;
+            sel.appendChild(opt);
+          });
+        });
+      }
+
+      // Mobile Navigation Toggle
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+      });
+
+      // Generic Modal Management
+      function openModal(modalId) {
+        const el = document.getElementById(modalId);
+        if (el) {
+          el.classList.remove('hidden');
+          document.body.classList.add('overflow-hidden');
+          lucide.createIcons();
+        }
+      }
+
+      function closeModal(modalId) {
+        const el = document.getElementById(modalId);
+        if (el) {
+          el.classList.add('hidden');
+          document.body.classList.remove('overflow-hidden');
+        }
+      }
+
+      // Close modal when clicking outside
+      window.addEventListener('click', (e) => {
+        ['plateModal', 'registerVehicleModal', 'qrGenModal', 'scanQrModal', 'complianceModal', 'mapModal', 'alertsModal', 'dashboardModal', 'aboutModal', 'contactModal', 'databaseModal', 'integrationsModal'].forEach(id => {
+          const modal = document.getElementById(id);
+          if (modal && e.target === modal) {
+            closeModal(id);
+          }
+        });
+      });
+
+      // ================= VEHICLE DATABASE (localStorage) =================
+      const DB_KEY = 'ecoscan_vehicles';
+      const SESSION_KEY = 'ecoscan_session_registered';
+
+      function loadVehicles() {
+        try {
+          return JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        } catch (e) { return []; }
+      }
+      function saveVehicles(list) {
+        try { localStorage.setItem(DB_KEY, JSON.stringify(list)); } catch (e) { }
+      }
+      function normalizePlate(p) {
+        return (p || '').toUpperCase().replace(/\s+/g, ' ').trim();
+      }
+      function daysUntil(dateStr) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        if (isNaN(d)) return null;
+        return Math.ceil((d - new Date()) / (1000 * 60 * 60 * 24));
+      }
+      function computeStatus(v) {
+        const pucDays = daysUntil(v.pucExpiry);
+        const insDays = daysUntil(v.insuranceExpiry);
+        const rcDays = daysUntil(v.rcValid);
+        const days = [pucDays, insDays, rcDays].filter(d => d !== null);
+        if (days.some(d => d < 0)) return 'Non-compliant';
+        if (days.some(d => d <= 30)) return 'Expiring soon';
+        return 'Compliant';
+      }
+
+      function addVehicleToDb(v) {
+        const list = loadVehicles();
+        const existingIdx = list.findIndex(x => x.plate === v.plate);
+        if (existingIdx >= 0) list[existingIdx] = v; else list.push(v);
+        saveVehicles(list);
+        const sessionCount = parseInt(sessionStorage.getItem(SESSION_KEY) || '0', 10) + 1;
+        sessionStorage.setItem(SESSION_KEY, String(sessionCount));
+        refreshAllViews();
+      }
+
+      function findVehicle(plate) {
+        const p = normalizePlate(plate);
+        return loadVehicles().find(v => v.plate === p);
+      }
+
+      // ================= REGISTRATION =================
+      function handleRegistrationSubmit(e) {
+        e.preventDefault();
+        const plate = normalizePlate(document.getElementById('regPlateNum').value) || 'DL 01 AB 1234';
+        const vehicle = {
+          plate,
+          owner: document.getElementById('regOwnerName').value || 'Unnamed Owner',
+          mobile: document.getElementById('regMobile').value || '',
+          state: document.getElementById('regState').value || 'Delhi',
+          vehicleType: document.getElementById('regVehicleType').value,
+          fuelType: document.getElementById('regFuelType').value,
+          model: document.getElementById('regModel').value || 'Unspecified Model',
+          pucNumber: document.getElementById('regPucNumber').value || ('PUC-' + Math.floor(100000 + Math.random() * 900000)),
+          pucExpiry: document.getElementById('regPucExpiry').value,
+          insuranceNumber: document.getElementById('regInsuranceNumber').value || ('POL-' + Math.floor(100000 + Math.random() * 900000)),
+          insuranceExpiry: document.getElementById('regInsuranceExpiry').value,
+          rcValid: document.getElementById('regRcValid').value,
+          registeredAt: new Date().toISOString()
+        };
+        vehicle.status = computeStatus(vehicle);
+
+        addVehicleToDb(vehicle);
+        closeModal('registerVehicleModal');
+        showToast(`Vehicle ${plate} registered & synced with VAHAN successfully!`);
+        e.target.reset();
+
+        setTimeout(() => {
+          renderQrForVehicle(vehicle);
+          openModal('qrGenModal');
+        }, 500);
+      }
+
+      // ================= QR GENERATION =================
+      // Uses the same QRCode.js library + hidden-holder pattern as the deployed
+      // ecoscan-india.vercel.app site. The QRCode constructor renders into a
+      // hidden off-screen element, then we extract the canvas/img and copy it.
+      let currentQrTag = null;
+
+      async function makeQR(text, size) {
+        const holder = document.getElementById('qr-hidden-holder');
+        const wrap = document.createElement('div');
+        holder.appendChild(wrap);
+        new QRCode(wrap, { text, width: size, height: size, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.H });
+        return new Promise(res => {
+          setTimeout(() => {
+            const el = wrap.querySelector('canvas') || wrap.querySelector('img');
+            const c = document.createElement('canvas');
+            c.width = size; c.height = size;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
+            if (el && el.tagName === 'CANVAS') { ctx.drawImage(el, 0, 0); wrap.remove(); res(c); }
+            else if (el) { el.onload = () => { ctx.drawImage(el, 0, 0); wrap.remove(); res(c); }; if (el.complete) el.onload(); }
+            else { wrap.remove(); res(c); } // fallback: return blank canvas
+          }, 200);
+        });
+      }
+
+      async function renderQrForVehicle(vehicle) {
+        const container = document.getElementById('qrCodeContainer');
+        const tagIdEl = document.getElementById('qrTagId');
+        if (!container) return;
+        container.innerHTML = '';
+        const tagId = 'ECO-' + vehicle.plate.replace(/\s+/g, '').slice(0, 6) + '-' + new Date().getFullYear();
+        if (tagIdEl) tagIdEl.textContent = tagId;
+        const verifyUrl = `https://ecoscan-india.vercel.app/verify/${encodeURIComponent(vehicle.plate)}`;
+
+        if (typeof QRCode === 'undefined') {
+          container.innerHTML = `<span class="text-[10px] text-slate-400 px-2">QR generator failed to load</span>`;
+          currentQrTag = null;
+          return;
+        }
+
+        try {
+          const qrSize = 200;
+          const qrCanvas = await makeQR(verifyUrl, qrSize);
+
+          // Create display canvas with dark green color (brand styling)
+          const displayCanvas = document.createElement('canvas');
+          displayCanvas.width = qrSize;
+          displayCanvas.height = qrSize;
+          displayCanvas.style.width = '100%';
+          displayCanvas.style.height = '100%';
+          const ctx = displayCanvas.getContext('2d');
+          ctx.drawImage(qrCanvas, 0, 0);
+
+          // Recolor black modules to dark emerald green for branding
+          const imgData = ctx.getImageData(0, 0, qrSize, qrSize);
+          const d = imgData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            // If pixel is dark (black from QR), recolor to #064e3b
+            if (d[i] < 50 && d[i + 1] < 50 && d[i + 2] < 50) {
+              d[i] = 6; d[i + 1] = 78; d[i + 2] = 59; // #064e3b
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+
+          container.appendChild(displayCanvas);
+
+          currentQrTag = {
+            plate: vehicle.plate,
+            tagId,
+            verifyUrl,
+            vehicle,
+            dataUrl: displayCanvas.toDataURL('image/png')
+          };
+        } catch (err) {
+          container.innerHTML = `<span class="text-[10px] text-slate-400 px-2">QR generation error</span>`;
+          currentQrTag = null;
+        }
+      }
+
+      // ================= QR PRINT-PDF DOWNLOAD =================
+      function downloadQrPdf() {
+        if (!currentQrTag || !currentQrTag.dataUrl) {
+          showToast('QR not ready yet — please wait a moment and try again.');
+          return;
+        }
+        const { jsPDF } = (window.jspdf || {});
+        if (!jsPDF) {
+          showToast('PDF library failed to load. Check your internet connection and try again.');
+          return;
+        }
+
+        const { plate, tagId, verifyUrl, vehicle } = currentQrTag;
+        const doc = new jsPDF({ unit: 'mm', format: [90, 130] }); // credit-card-ish windshield tag size
+
+        // Header band
+        doc.setFillColor(5, 150, 105); // emerald-600
+        doc.rect(0, 0, 90, 22, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('EcoScan India', 45, 10, { align: 'center' });
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Digital Windshield Compliance Tag', 45, 16, { align: 'center' });
+
+        // QR code
+        const qrSize = 55;
+        doc.addImage(currentQrTag.dataUrl, 'PNG', (90 - qrSize) / 2, 28, qrSize, qrSize);
+
+        // Details below the QR
+        doc.setTextColor(20, 20, 20);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text(plate, 45, 92, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.text(`Tag ID: ${tagId}`, 45, 98, { align: 'center' });
+        if (vehicle && vehicle.model) {
+          doc.text(String(vehicle.model), 45, 103, { align: 'center' });
+        }
+
+        doc.setTextColor(5, 150, 105);
+        doc.setFontSize(6.5);
+        doc.text('Scan to verify PUC, Insurance & RC status', 45, 112, { align: 'center' });
+        doc.setTextColor(120, 120, 120);
+        doc.setFontSize(5.5);
+        doc.text(verifyUrl, 45, 117, { align: 'center', maxWidth: 80 });
+        doc.text('Print and affix to the inside of the windshield.', 45, 124, { align: 'center' });
+
+        const fileSafePlate = plate.replace(/\s+/g, '');
+        doc.save(`EcoScan-QR-Tag-${fileSafePlate}.pdf`);
+        showToast('Downloading Digital Windshield Tag (PDF)...');
+      }
+
+      // ================= PLATE LOOKUP / DETAILS MODAL =================
+      function hashPlate(plate) {
+        let h = 0;
+        for (let i = 0; i < plate.length; i++) h = (h * 31 + plate.charCodeAt(i)) >>> 0;
+        return h;
+      }
+
+      function buildDemoRecord(plate, forceStatus) {
+        const h = hashPlate(plate);
+        const models = ['Hyundai Verna SX 1.5', 'Maruti Swift VXi', 'Tata Nexon EV', 'Honda City VX', 'Mahindra XUV700', 'Royal Enfield Classic 350'];
+        const fuels = ['Petrol • Bharat Stage VI', 'Diesel • Bharat Stage VI', 'CNG', 'Electric', 'Hybrid'];
+        const states = ['Delhi', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Uttar Pradesh'];
+        const status = forceStatus || (h % 5 === 0 ? 'Non-compliant' : (h % 4 === 0 ? 'Expiring soon' : 'Compliant'));
+        const state = states[h % states.length];
+        const today = new Date();
+        const offsetDays = status === 'Non-compliant' ? -(5 + (h % 60)) : (status === 'Expiring soon' ? (5 + (h % 25)) : (60 + (h % 200)));
+        const expiry = new Date(today.getTime() + offsetDays * 86400000);
+        return {
+          plate, owner: 'A**** K**** (Private)', state,
+          vehicleType: 'Car / Sedan', model: models[h % models.length],
+          fuelType: fuels[h % fuels.length].split(' ')[0],
+          pucExpiry: expiry.toISOString().slice(0, 10),
+          insuranceExpiry: expiry.toISOString().slice(0, 10),
+          rcValid: new Date(today.getTime() + 365 * 86400000).toISOString().slice(0, 10),
+          status
+        };
+      }
+
+      function fmtDate(d) {
+        if (!d) return 'N/A';
+        const dt = new Date(d);
+        if (isNaN(dt)) return 'N/A';
+        return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+
+      function openPlateDetails(plateNumber, forcedVehicle) {
+        const plate = normalizePlate(plateNumber) || 'DL 8C AX 1234';
+        let vehicle = forcedVehicle || findVehicle(plate);
+        if (!vehicle) { vehicle = buildDemoRecord(plate); }
+        if (!vehicle.status) vehicle.status = computeStatus(vehicle);
+
+        document.getElementById('modalPlateNumber').textContent = plate;
+        document.getElementById('modalMakeModel').textContent = vehicle.model || 'Unregistered Vehicle';
+        document.getElementById('modalFuel').textContent = vehicle.fuelType || 'Unknown';
+        document.getElementById('modalRto').textContent = (STATE_RTO_ZONE[vehicle.state] || vehicle.state || 'Unknown State');
+        document.getElementById('modalOwner').textContent = vehicle.owner || 'A**** K**** (Private)';
+
+        const statusColors = {
+          'Compliant': { bg: 'bg-emerald-50/70', border: 'border-emerald-100', icon: 'bg-emerald-600', badge: 'bg-emerald-600' },
+          'Expiring soon': { bg: 'bg-amber-50/70', border: 'border-amber-100', icon: 'bg-amber-500', badge: 'bg-amber-500' },
+          'Non-compliant': { bg: 'bg-rose-50/70', border: 'border-rose-100', icon: 'bg-rose-600', badge: 'bg-rose-600' }
+        };
+        const c = statusColors[vehicle.status] || statusColors['Compliant'];
+
+        const verifiedText = document.getElementById('modalVerifiedText');
+        if (verifiedText) verifiedText.textContent = vehicle.status === 'Compliant' ? 'Verified' : vehicle.status;
+
+        const pucRow = document.getElementById('modalPucRow');
+        pucRow.className = `flex items-center justify-between p-3 rounded-xl border ${c.bg} ${c.border}`;
+        document.getElementById('modalPucIcon').className = `w-8 h-8 rounded-lg text-white flex items-center justify-center ${c.icon}`;
+        document.getElementById('modalPucDate').textContent = fmtDate(vehicle.pucExpiry);
+        const pucBadge = document.getElementById('modalPucBadge');
+        pucBadge.className = `px-2.5 py-1 rounded text-white text-[11px] font-bold ${c.badge}`;
+        pucBadge.textContent = (daysUntil(vehicle.pucExpiry) ?? 0) < 0 ? 'EXPIRED' : 'VALID';
+
+        const insRow = document.getElementById('modalInsRow');
+        insRow.className = `flex items-center justify-between p-3 rounded-xl border ${c.bg} ${c.border}`;
+        document.getElementById('modalInsIcon').className = `w-8 h-8 rounded-lg text-white flex items-center justify-center ${c.icon}`;
+        document.getElementById('modalInsDetail').innerHTML = `Policy ${vehicle.insuranceNumber || 'N/A'} • Valid till: <strong>${fmtDate(vehicle.insuranceExpiry)}</strong>`;
+        const insBadge = document.getElementById('modalInsBadge');
+        insBadge.className = `px-2.5 py-1 rounded text-white text-[11px] font-bold ${c.badge}`;
+        insBadge.textContent = (daysUntil(vehicle.insuranceExpiry) ?? 0) < 0 ? 'EXPIRED' : 'ACTIVE';
+
+        document.getElementById('modalRcDetail').textContent = 'RC valid until: ' + fmtDate(vehicle.rcValid);
+        document.getElementById('modalRcBadge').textContent = (daysUntil(vehicle.rcValid) ?? 0) < 0 ? 'EXPIRED' : 'VALID';
+
+        openModal('plateModal');
+        addScanLogEntry(plate, vehicle.status);
+      }
+
+      // Quick Search Form Submit
+      function handleQuickSearch(e) {
+        e.preventDefault();
+        const input = document.getElementById('quickPlateInput');
+        const val = input.value.trim() || 'DL 8C AX 1234';
+        openPlateDetails(val);
+      }
+
+      // Manual / Verify Scan Input
+      function handleManualScanSearch() {
+        const val = document.getElementById('manualScannerInput').value.trim() || 'DL 8C AX 1234';
+        closeModal('scanQrModal');
+        openPlateDetails(val);
+      }
+
+      // Demo scan buttons
+      function runDemoScan(kind) {
+        const demoPlates = {
+          'compliant': 'DL 8C AX 1234',
+          'non-compliant': 'MH 02 CD 5678',
+          'expiring': 'KA 01 MJ 9999'
+        };
+        const statusMap = { 'compliant': 'Compliant', 'non-compliant': 'Non-compliant', 'expiring': 'Expiring soon' };
+        const plate = demoPlates[kind];
+        const vehicle = findVehicle(plate) || buildDemoRecord(plate, statusMap[kind]);
+        const forced = Object.assign({}, vehicle, { status: statusMap[kind] });
+        closeModal('scanQrModal');
+        openPlateDetails(plate, forced);
+      }
+
+      // Session scan log
+      function addScanLogEntry(plate, status) {
+        const list = document.getElementById('scanLogList');
+        if (!list) return;
+        if (list.dataset.empty !== 'false') { list.innerHTML = ''; list.dataset.empty = 'false'; }
+        const colorMap = { 'Compliant': 'text-emerald-400', 'Non-compliant': 'text-rose-400', 'Expiring soon': 'text-amber-400' };
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-800/60';
+        const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        row.innerHTML = `<span class="font-mono">${plate}</span><span class="${colorMap[status] || 'text-slate-300'} font-semibold">${status}</span><span class="text-slate-500">${time}</span>`;
+        list.prepend(row);
+      }
+
+      // ================= CAMERA SCANNER (with live QR decoding) =================
+      let cameraStream = null;
+      let scanLoopId = null;
+      let lastDecodedAt = 0;
+
+      async function startCamera() {
+        const video = document.getElementById('cameraFeed');
+        const fallbackImg = document.getElementById('cameraFallbackImg');
+        const badge = document.getElementById('cameraStatusBadge');
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+          video.srcObject = cameraStream;
+          await video.play().catch(() => { });
+          video.classList.remove('hidden');
+          fallbackImg.classList.add('hidden');
+          badge.textContent = 'Camera live — scanning for QR...';
+          badge.classList.add('text-emerald-400');
+          document.getElementById('cameraStartBtn').disabled = true;
+          document.getElementById('cameraStartBtn').classList.add('opacity-50');
+          document.getElementById('cameraStopBtn').disabled = false;
+          document.getElementById('cameraStopBtn').classList.remove('opacity-50');
+          startQrScanLoop();
+        } catch (err) {
+          badge.textContent = 'Camera unavailable — using manual entry';
+          showToast('Could not access camera. Use manual plate entry or demo scans instead.');
+        }
+      }
+
+      function stopCamera() {
+        stopQrScanLoop();
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(t => t.stop());
+          cameraStream = null;
+        }
+        const video = document.getElementById('cameraFeed');
+        const fallbackImg = document.getElementById('cameraFallbackImg');
+        const badge = document.getElementById('cameraStatusBadge');
+        video.classList.add('hidden');
+        fallbackImg.classList.remove('hidden');
+        badge.textContent = 'Camera inactive';
+        badge.classList.remove('text-emerald-400');
+        document.getElementById('cameraStartBtn').disabled = false;
+        document.getElementById('cameraStartBtn').classList.remove('opacity-50');
+        document.getElementById('cameraStopBtn').disabled = true;
+        document.getElementById('cameraStopBtn').classList.add('opacity-50');
+      }
+
+      function startQrScanLoop() {
+        const video = document.getElementById('cameraFeed');
+        const canvas = document.getElementById('cameraCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        function tick() {
+          if (!cameraStream) return; // camera stopped
+          if (video.readyState === video.HAVE_ENOUGH_DATA && typeof jsQR === 'function') {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            try {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+              if (code && code.data) {
+                const now = Date.now();
+                if (now - lastDecodedAt > 2000) { // debounce repeat scans
+                  lastDecodedAt = now;
+                  handleQrDecoded(code.data);
+                }
+              }
+            } catch (e) { /* frame not ready, ignore */ }
+          }
+          scanLoopId = requestAnimationFrame(tick);
+        }
+        scanLoopId = requestAnimationFrame(tick);
+      }
+
+      function stopQrScanLoop() {
+        if (scanLoopId) {
+          cancelAnimationFrame(scanLoopId);
+          scanLoopId = null;
+        }
+      }
+
+      // Extract the plate from a decoded EcoScan QR (or accept a raw plate string)
+      function extractPlateFromQrText(text) {
+        try {
+          const url = new URL(text);
+          const parts = url.pathname.split('/').filter(Boolean);
+          const last = parts[parts.length - 1];
+          return decodeURIComponent(last);
+        } catch (e) {
+          // Not a URL — treat the raw decoded text as the plate itself
+          return text;
+        }
+      }
+
+      function handleQrDecoded(rawText) {
+        const plate = normalizePlate(extractPlateFromQrText(rawText));
+        const label = document.getElementById('scanBoxLabel');
+        if (label) { label.textContent = `QR detected: ${plate}`; }
+        showToast(`QR code recognized: ${plate}`);
+        stopCamera();
+        closeModal('scanQrModal');
+        openPlateDetails(plate);
+      }
+
+      // ================= GEOLOCATION =================
+      let liveTrackWatchId = null;
+      function detectLocation() {
+        if (!navigator.geolocation) {
+          showToast('Geolocation is not supported on this device/browser.');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(onLocationSuccess, onLocationError, { enableHighAccuracy: true, timeout: 8000 });
+      }
+      async function onLocationSuccess(pos) {
+        const { latitude, longitude } = pos.coords;
+        document.getElementById('locCoords').textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+        document.getElementById('locSource').textContent = 'Device GPS';
+        try {
+          const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await resp.json();
+          const addr = data.address || {};
+          const state = addr.state || 'Unknown';
+          const district = addr.state_district || addr.county || addr.city || addr.town || '—';
+          document.getElementById('locState').textContent = state;
+          document.getElementById('locDistrict').textContent = district;
+          document.getElementById('locRto').textContent = STATE_RTO_ZONE[state] || 'Not mapped';
+          document.getElementById('locCompliance').textContent = STATE_COMPLIANCE_AVG[state] ? (STATE_COMPLIANCE_AVG[state] + ' state avg') : '91.2% national avg';
+          document.getElementById('mapDetectedState').textContent = state + (district !== '—' ? ' • ' + district : '');
+        } catch (err) {
+          document.getElementById('locState').textContent = 'Reverse lookup unavailable';
+          document.getElementById('locDistrict').textContent = '—';
+        }
+      }
+      function onLocationError() {
+        showToast('Could not detect location. Please allow location access and try again.');
+      }
+      function toggleLiveTracking() {
+        const btn = document.getElementById('liveTrackBtn');
+        const dot = document.getElementById('liveTrackDot');
+        if (liveTrackWatchId === null) {
+          if (!navigator.geolocation) { showToast('Geolocation is not supported on this device/browser.'); return; }
+          liveTrackWatchId = navigator.geolocation.watchPosition(onLocationSuccess, onLocationError, { enableHighAccuracy: true });
+          btn.textContent = 'Stop live tracking';
+          dot.classList.remove('hidden');
+          dot.classList.add('flex');
+        } else {
+          navigator.geolocation.clearWatch(liveTrackWatchId);
+          liveTrackWatchId = null;
+          btn.textContent = 'Start live tracking';
+          dot.classList.add('hidden');
+          dot.classList.remove('flex');
+        }
+      }
+
+      // ================= DASHBOARD =================
+      function renderDashboard() {
+        const vehicles = loadVehicles();
+        const total = vehicles.length;
+        const compliant = vehicles.filter(v => computeStatus(v) === 'Compliant').length;
+        const nonCompliant = vehicles.filter(v => computeStatus(v) === 'Non-compliant').length;
+        const expiring = vehicles.filter(v => computeStatus(v) === 'Expiring soon').length;
+
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setText('dashTotal', total);
+        setText('dashCompliant', compliant);
+        setText('dashNonCompliant', nonCompliant);
+        setText('dashExpiring', expiring);
+
+        // State bars: combine demo baseline states with real registered data
+        const baseStates = { 'Delhi': 97.4, 'Maharashtra': 95.8, 'Karnataka': 96.2 };
+        const stateBarsEl = document.getElementById('dashStateBars');
+        if (stateBarsEl) {
+          stateBarsEl.innerHTML = Object.entries(baseStates).map(([state, pct]) => `
+          <div>
+            <div class="flex justify-between text-[11px] mb-1"><span class="font-semibold text-slate-600">${state}</span><span class="font-bold text-slate-800">${pct}%</span></div>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-emerald-500 h-full rounded-full" style="width:${pct}%"></div></div>
+          </div>`).join('');
+        }
+
+        // Vehicle type breakdown
+        const typeCounts = {};
+        vehicles.forEach(v => { typeCounts[v.vehicleType || 'Other'] = (typeCounts[v.vehicleType || 'Other'] || 0) + 1; });
+        const typeBarsEl = document.getElementById('dashTypeBars');
+        if (typeBarsEl) {
+          if (total === 0) {
+            typeBarsEl.innerHTML = '<p class="text-[11px] text-slate-400">No vehicles registered yet</p>';
+          } else {
+            typeBarsEl.innerHTML = Object.entries(typeCounts).map(([type, count]) => {
+              const pct = Math.round((count / total) * 100);
+              return `<div>
+              <div class="flex justify-between text-[11px] mb-1"><span class="font-semibold text-slate-600">${type}</span><span class="font-bold text-slate-800">${count}</span></div>
+              <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div class="bg-teal-500 h-full rounded-full" style="width:${pct}%"></div></div>
+            </div>`;
+            }).join('');
+          }
+        }
+
+        // Recent registrations
+        const recentEl = document.getElementById('dashRecent');
+        if (recentEl) {
+          const recent = [...vehicles].sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt)).slice(0, 5);
+          recentEl.innerHTML = recent.length ? recent.map(v => `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+            <span class="font-mono font-bold">${v.plate}</span>
+            <span class="text-slate-500">${v.state || ''}</span>
+            <span class="font-semibold ${v.status === 'Compliant' ? 'text-emerald-600' : v.status === 'Expiring soon' ? 'text-amber-600' : 'text-rose-600'}">${computeStatus(v)}</span>
+          </div>`).join('') : '<p class="text-slate-400">No vehicles registered yet</p>';
+        }
+
+        // Top violations
+        const violEl = document.getElementById('dashViolations');
+        if (violEl) {
+          const pucExpired = vehicles.filter(v => (daysUntil(v.pucExpiry) ?? 1) < 0).length;
+          const insExpired = vehicles.filter(v => (daysUntil(v.insuranceExpiry) ?? 1) < 0).length;
+          const rcExpired = vehicles.filter(v => (daysUntil(v.rcValid) ?? 1) < 0).length;
+          const rows = [
+            ['PUC certificate expired', pucExpired],
+            ['Insurance policy expired', insExpired],
+            ['RC validity expired', rcExpired]
+          ];
+          violEl.innerHTML = rows.map(([label, count]) => `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+            <span class="text-slate-600">${label}</span><span class="font-bold text-slate-800">${count}</span>
+          </div>`).join('');
+        }
+      }
+
+      // ================= DATABASE TABLE =================
+      function renderDatabaseTable() {
+        const vehicles = loadVehicles();
+        const stateFilter = document.getElementById('dbFilterState')?.value || '';
+        const statusFilter = document.getElementById('dbFilterStatus')?.value || '';
+        let filtered = vehicles.map(v => ({ ...v, status: computeStatus(v) }));
+        if (stateFilter) filtered = filtered.filter(v => v.state === stateFilter);
+        if (statusFilter) filtered = filtered.filter(v => v.status === statusFilter);
+
+        const countEl = document.getElementById('dbRecordCount');
+        if (countEl) countEl.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
+
+        const tbody = document.getElementById('dbTableBody');
+        if (!tbody) return;
+        if (filtered.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="px-3 py-6 text-center text-slate-400">No vehicles registered yet</td></tr>';
+          return;
+        }
+        const statusColor = { 'Compliant': 'text-emerald-600', 'Non-compliant': 'text-rose-600', 'Expiring soon': 'text-amber-600' };
+        tbody.innerHTML = filtered.map(v => `
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-mono font-bold">${v.plate}</td>
+          <td class="px-3 py-2">${v.owner || '—'}</td>
+          <td class="px-3 py-2">${v.state || '—'}</td>
+          <td class="px-3 py-2">${v.vehicleType || '—'}</td>
+          <td class="px-3 py-2">${v.fuelType || '—'}</td>
+          <td class="px-3 py-2">${fmtDate(v.pucExpiry)}</td>
+          <td class="px-3 py-2">${fmtDate(v.insuranceExpiry)}</td>
+          <td class="px-3 py-2">${fmtDate(v.rcValid)}</td>
+          <td class="px-3 py-2 font-bold ${statusColor[v.status] || ''}">${v.status}</td>
+          <td class="px-3 py-2"><button onclick="openPlateDetails('${v.plate}')" class="px-2 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold">View</button></td>
+        </tr>`).join('');
+      }
+
+      function clearDatabase() {
+        if (!confirm('Clear all registered vehicle records from this browser? This cannot be undone.')) return;
+        saveVehicles([]);
+        sessionStorage.removeItem(SESSION_KEY);
+        refreshAllViews();
+        showToast('Vehicle database cleared.');
+      }
+
+      // ================= MAP: STATE DETAIL =================
+      function showStateDetail(state, pct, label) {
+        const panel = document.getElementById('stateDetailPanel');
+        if (!panel) return;
+        panel.classList.remove('hidden');
+        panel.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+          <h5 class="font-bold">${state}</h5>
+          <span class="text-emerald-400 font-bold">${pct}%</span>
+        </div>
+        <p class="text-slate-300">${label} • Live sync with State Pollution Control Board & VAHAN registry.</p>`;
+      }
+
+      // ================= ALERT CONFIGURATION =================
+      function saveAlertConfig() {
+        const config = {
+          firstAlert: document.getElementById('cfgFirstAlert').value,
+          channel: document.getElementById('cfgChannel').value,
+          fuelAction: document.getElementById('cfgFuelAction').value,
+          rtoNotify: document.getElementById('cfgRtoNotify').value
+        };
+        try { localStorage.setItem('ecoscan_alert_config', JSON.stringify(config)); } catch (e) { }
+        showToast('Alert configuration saved successfully!');
+      }
+
+      // ================= GLOBAL REFRESH =================
+      function refreshAllViews() {
+        const vehicles = loadVehicles();
+        const dbCountEl = document.getElementById('statDbCount');
+        if (dbCountEl) dbCountEl.textContent = vehicles.length;
+        const sessionEl = document.getElementById('statSessionCount');
+        if (sessionEl) sessionEl.textContent = sessionStorage.getItem(SESSION_KEY) || '0';
+        renderDashboard();
+        renderDatabaseTable();
+      }
+
+      // Download Report Simulation
+      function downloadComplianceReport() {
+        showToast('Downloading Official Green Vehicle Compliance Certificate (PDF)...');
+        setTimeout(() => {
+          closeModal('plateModal');
+        }, 1000);
+      }
+
+      // Toast Notification helper
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        toastMsg.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 4000);
+        lucide.createIcons();
+      }
+
+      // Government Portal Toast helper
+      function showPortalToast(portalName) {
+        showToast(`Connected live to Government of India portal: ${portalName}`);
+      }
+    </script>
+
+  </div>
+  ElementById('statSessionCount');
+  if (sessionEl) sessionEl.textContent = sessionStorage.getItem(SESSION_KEY) || '0';
+  renderDashboard();
+  renderDatabaseTable();
+  }
+
+  // Download Report Simulation
+  function downloadComplianceReport() {
+  showToast('Downloading Official Green Vehicle Compliance Certificate (PDF)...');
+  setTimeout(() => {
+  closeModal('plateModal');
+  }, 1000);
+  }
+
+  // Toast Notification helper
+  function showToast(msg) {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  toastMsg.textContent = msg;
+  toast.classList.remove('hidden');
+  setTimeout(() => {
+  toast.classList.add('hidden');
+  }, 4000);
+  lucide.createIcons();
+  }
+
+  // Government Portal Toast helper
+  function showPortalToast(portalName) {
+  showToast(`Connected live to Government of India portal: ${portalName}`);
+  }
+  </script>
+</body>
+
+</html>
